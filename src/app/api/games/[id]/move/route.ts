@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { validateClue } from '@/lib/game/clueValidator';
 import { getCardTypeForPlayer } from '@/lib/game/keyGenerator';
-import { checkWin, isWordRevealed, getNextTurn } from '@/lib/game/gameLogic';
+import { isWordRevealed, getNextTurn } from '@/lib/game/gameLogic';
 import { BoardState, KeyCard, ClueStrictness, CurrentTurn, RevealedCard } from '@/lib/supabase/types';
 
 export async function POST(
@@ -32,7 +32,7 @@ export async function POST(
       return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
-    // Type assertion for game data
+    // Type assertion for game data - matches actual DB schema
     const game = gameData as unknown as {
       id: string;
       status: string;
@@ -42,11 +42,12 @@ export async function POST(
       key_card: KeyCard;
       board_state: BoardState;
       timer_tokens: number;
-      timer_tokens_remaining: number;
       current_turn: CurrentTurn;
+      current_phase: string;
       clue_strictness: ClueStrictness;
-      current_clue: { word: string; number: number; intendedWords: string[] } | null;
-      guesses_this_turn: number;
+      sudden_death: boolean;
+      player1_agents_found: number;
+      player2_agents_found: number;
     };
 
     // Check if game is in playing status
@@ -172,37 +173,38 @@ export async function POST(
       // Build update data
       const updateData: Record<string, unknown> = {
         board_state: newBoardState,
-        guesses_this_turn: game.guesses_this_turn + 1,
       };
 
       // Check game end conditions
-      const newGame = { 
-        ...game, 
-        board_state: newBoardState,
-        timer_tokens_remaining: game.timer_tokens_remaining
-      };
-      
       const assassinHit = cardType === 'assassin';
-      const won = checkWin(newGame as Parameters<typeof checkWin>[0]);
-      const suddenDeath = game.timer_tokens_remaining <= 0;
+      
+      // Check win by counting agents found
+      const agentsFound = Object.values(newBoardState.revealed).filter(r => r.type === 'agent').length;
+      const totalAgentsNeeded = 15; // Codenames Duet has 15 unique agents
+      const won = agentsFound >= totalAgentsNeeded;
+      
+      const suddenDeath = game.sudden_death || game.timer_tokens <= 0;
       const suddenDeathLoss = suddenDeath && cardType === 'bystander';
 
       if (assassinHit || suddenDeathLoss) {
         // Game over - loss
         updateData.status = 'completed';
-        updateData.winner = null;
-        updateData.completed_at = new Date().toISOString();
+        updateData.result = 'loss';
+        updateData.ended_at = new Date().toISOString();
       } else if (won) {
         // Game over - win!
         updateData.status = 'completed';
-        updateData.winner = 'both'; // Codenames Duet is cooperative
-        updateData.completed_at = new Date().toISOString();
+        updateData.result = 'win';
+        updateData.ended_at = new Date().toISOString();
       } else if (cardType !== 'agent') {
         // Wrong guess (bystander) - switch turns
-        updateData.timer_tokens_remaining = game.timer_tokens_remaining - 1;
+        const newTokens = game.timer_tokens - 1;
+        updateData.timer_tokens = newTokens;
         updateData.current_turn = getNextTurn(currentTurn);
-        updateData.current_clue = null;
-        updateData.guesses_this_turn = 0;
+        updateData.current_phase = 'clue';
+        if (newTokens <= 0) {
+          updateData.sudden_death = true;
+        }
       }
       // If agent found, continue guessing (don't update turn)
 
@@ -244,19 +246,18 @@ export async function POST(
         console.error('Error creating move:', moveError);
       }
 
-      const newTokens = game.timer_tokens_remaining - 1;
+      const newTokens = game.timer_tokens - 1;
       
       const updateData: Record<string, unknown> = {
         current_turn: getNextTurn(currentTurn),
-        current_clue: null,
-        guesses_this_turn: 0,
-        timer_tokens_remaining: newTokens,
+        current_phase: 'clue',
+        timer_tokens: newTokens,
       };
 
       // Check if out of tokens (sudden death)
       if (newTokens <= 0) {
-        // In sudden death, can still play but any wrong guess loses
-        updateData.timer_tokens_remaining = 0;
+        updateData.timer_tokens = 0;
+        updateData.sudden_death = true;
       }
 
       const { error: updateError } = await supabase
