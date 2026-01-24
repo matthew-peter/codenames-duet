@@ -102,17 +102,28 @@ export async function POST(
         return NextResponse.json({ error: 'Failed to save move' }, { status: 500 });
       }
 
-      // Update game with current clue
+      // Deduct a timer token for giving a clue (each clue = 1 round)
+      const newTokens = game.timer_tokens - 1;
+      
+      const updateData: Record<string, unknown> = {
+        current_clue: { 
+          word: clueWord.toLowerCase(), 
+          number: intendedWords?.length ?? 0,
+          intendedWords: intendedWords ?? []
+        },
+        guesses_this_turn: 0,
+        timer_tokens: newTokens,
+      };
+      
+      // Check if out of tokens (sudden death)
+      if (newTokens <= 0) {
+        updateData.timer_tokens = 0;
+        updateData.sudden_death = true;
+      }
+      
       const { error: updateError } = await supabase
         .from('games')
-        .update({
-          current_clue: { 
-            word: clueWord.toLowerCase(), 
-            number: intendedWords?.length ?? 0,
-            intendedWords: intendedWords ?? []
-          },
-          guesses_this_turn: 0,
-        } as Record<string, unknown>)
+        .update(updateData)
         .eq('id', id);
 
       if (updateError) {
@@ -120,7 +131,7 @@ export async function POST(
         return NextResponse.json({ error: 'Failed to update game' }, { status: 500 });
       }
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, newTokens });
     }
 
     if (moveType === 'guess') {
@@ -197,14 +208,9 @@ export async function POST(
         updateData.result = 'win';
         updateData.ended_at = new Date().toISOString();
       } else if (cardType !== 'agent') {
-        // Wrong guess (bystander) - switch turns
-        const newTokens = game.timer_tokens - 1;
-        updateData.timer_tokens = newTokens;
+        // Wrong guess (bystander) - switch turns (token already deducted when clue was given)
         updateData.current_turn = getNextTurn(currentTurn);
         updateData.current_phase = 'clue';
-        if (newTokens <= 0) {
-          updateData.sudden_death = true;
-        }
       }
       // If agent found, continue guessing (don't update turn)
 
@@ -246,19 +252,11 @@ export async function POST(
         console.error('Error creating move:', moveError);
       }
 
-      const newTokens = game.timer_tokens - 1;
-      
+      // Token already deducted when clue was given
       const updateData: Record<string, unknown> = {
         current_turn: getNextTurn(currentTurn),
         current_phase: 'clue',
-        timer_tokens: newTokens,
       };
-
-      // Check if out of tokens (sudden death)
-      if (newTokens <= 0) {
-        updateData.timer_tokens = 0;
-        updateData.sudden_death = true;
-      }
 
       const { error: updateError } = await supabase
         .from('games')

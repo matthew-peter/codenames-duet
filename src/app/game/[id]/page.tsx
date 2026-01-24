@@ -257,16 +257,9 @@ function GamePageContent({ gameId }: { gameId: string }) {
       }
     } else if (result.turnEnds) {
       // Bystander hit, guessing ends, guesser now becomes the clue giver
-      // The guesser is the one who is NOT current_turn (since current_turn = clue giver)
-      // So now the guesser (me, playerRole) becomes the clue giver
-      const newTokens = game.timer_tokens - 1;
+      // Token already deducted when clue was given
       updates.current_turn = playerRole; // I was guessing, now I give clue
       updates.current_phase = 'clue';
-      updates.timer_tokens = newTokens;
-      
-      if (newTokens <= 0) {
-        updates.sudden_death = true;
-      }
       
       // No notification needed - it's MY turn now to give a clue
       toast.info('Bystander! Your turn to give a clue.');
@@ -298,17 +291,11 @@ function GamePageContent({ gameId }: { gameId: string }) {
     });
 
     // Update game - guesser ends turn, becomes next clue giver
-    // I was guessing (not the current_turn/clue giver), now I become clue giver
-    const newTokens = game.timer_tokens - 1;
+    // Token already deducted when clue was given
     const updates: Record<string, unknown> = {
       current_turn: playerRole, // I was guessing, now I give clue
       current_phase: 'clue',
-      timer_tokens: newTokens,
     };
-    
-    if (newTokens <= 0) {
-      updates.sudden_death = true;
-    }
     
     const { error } = await supabase
       .from('games')
