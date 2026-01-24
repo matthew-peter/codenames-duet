@@ -336,7 +336,7 @@ function GamePageContent({ gameId }: { gameId: string }) {
     : 0;
 
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-rose-900 via-rose-800 to-stone-900 flex flex-col">
       <Header />
       
       <GameStatus
@@ -347,7 +347,7 @@ function GamePageContent({ gameId }: { gameId: string }) {
         guessCount={guessCount}
       />
       
-      <main className="flex-1 overflow-auto py-2">
+      <main className="flex-1 overflow-auto py-4 px-2">
         <GameBoard
           game={game}
           playerRole={playerRole}

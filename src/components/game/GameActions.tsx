@@ -35,7 +35,7 @@ export function GameActions({
   const canEndTurn = isGuessing && guessCount > 0;
   
   return (
-    <div className="bg-white border-t p-3">
+    <div className="bg-gradient-to-r from-stone-800 via-stone-700 to-stone-800 border-t border-stone-600 p-3">
       <div className="max-w-lg mx-auto flex items-center justify-between">
         <ClueHistory
           moves={moves}
@@ -48,21 +48,20 @@ export function GameActions({
         {canEndTurn && (
           <Button
             onClick={onEndTurn}
-            variant="outline"
-            className="border-green-600 text-green-600 hover:bg-green-50"
+            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold shadow-lg"
           >
             End Turn
           </Button>
         )}
         
         {isClueGiver && (
-          <div className="text-sm text-stone-500 italic">
+          <div className="text-sm text-white/60 italic">
             Select words & give clue below
           </div>
         )}
         
         {!isMyTurn && !isGuessing && (
-          <div className="text-sm text-stone-500 italic">
+          <div className="text-sm text-white/60 italic animate-pulse">
             Waiting for opponent...
           </div>
         )}

@@ -7,6 +7,7 @@ import { getCardTypeForPlayer } from '@/lib/game/keyGenerator';
 import { isWordRevealed } from '@/lib/game/gameLogic';
 import { cn } from '@/lib/utils';
 import { WordDefinition } from './WordDefinition';
+import { User, Eye, Skull } from 'lucide-react';
 
 interface WordCardProps {
   word: string;
@@ -41,41 +42,56 @@ function WordCard({
   // Get card type from current player's key (what they see)
   const cardTypeForMe = getCardTypeForPlayer(index, game.key_card, playerRole);
   
-  // Determine card display state
-  let bgColor = 'bg-stone-100'; // Default unrevealed
-  let borderColor = 'border-stone-300';
-  let textColor = 'text-stone-800';
-  
-  if (isRevealed) {
-    // Card has been revealed
-    if (revealed.type === 'agent') {
-      bgColor = 'bg-green-500';
-      borderColor = 'border-green-600';
-      textColor = 'text-white';
-    } else if (revealed.type === 'assassin') {
-      bgColor = 'bg-stone-900';
-      borderColor = 'border-stone-950';
-      textColor = 'text-white';
-    } else {
-      // Bystander
-      bgColor = 'bg-amber-200';
-      borderColor = 'border-amber-400';
-      textColor = 'text-amber-900';
+  // Card styling based on state
+  const getCardStyles = () => {
+    if (isRevealed) {
+      if (revealed.type === 'agent') {
+        return {
+          card: 'bg-gradient-to-br from-cyan-400 via-cyan-500 to-cyan-600 border-cyan-300 shadow-cyan-200',
+          text: 'text-white',
+          label: 'bg-white/90 text-cyan-700',
+          icon: <User className="w-8 h-8 text-white/80" />,
+        };
+      } else if (revealed.type === 'assassin') {
+        return {
+          card: 'bg-gradient-to-br from-stone-700 via-stone-800 to-stone-900 border-stone-600 shadow-stone-400',
+          text: 'text-white',
+          label: 'bg-stone-900 text-white',
+          icon: <Skull className="w-8 h-8 text-white/80" />,
+        };
+      } else {
+        // Bystander
+        return {
+          card: 'bg-gradient-to-br from-amber-100 via-orange-100 to-amber-200 border-amber-300 shadow-amber-100',
+          text: 'text-amber-900',
+          label: 'bg-white/90 text-amber-800',
+          icon: <Eye className="w-8 h-8 text-amber-600/60" />,
+        };
+      }
     }
-  } else {
-    // Show key card colors for unrevealed cards (clue giver's perspective)
+    
+    // Unrevealed card - show subtle hints for clue giver
+    let borderHint = 'border-stone-200';
     if (cardTypeForMe === 'agent') {
-      borderColor = 'border-green-500 border-2';
+      borderHint = 'border-cyan-400 border-2';
     } else if (cardTypeForMe === 'assassin') {
-      borderColor = 'border-stone-900 border-2';
+      borderHint = 'border-stone-800 border-2';
     }
-  }
+    
+    return {
+      card: `bg-gradient-to-br from-stone-50 to-stone-100 ${borderHint} shadow-stone-100`,
+      text: 'text-stone-700',
+      label: 'bg-white text-stone-800',
+      icon: null,
+    };
+  };
+  
+  const styles = getCardStyles();
   
   // Selection state for clue giving
-  if (isSelected && !isRevealed) {
-    borderColor = 'border-blue-500 border-3 ring-2 ring-blue-300';
-    bgColor = 'bg-blue-50';
-  }
+  const selectionStyles = isSelected && !isRevealed 
+    ? 'ring-4 ring-blue-400 ring-offset-2 border-blue-500 scale-105' 
+    : '';
   
   const handleTouchStart = useCallback(() => {
     isLongPress.current = false;
@@ -118,38 +134,66 @@ function WordCard({
     <>
       <button
         className={cn(
-          'relative w-full aspect-[4/3] rounded-lg border-2 flex items-center justify-center p-1 transition-all',
-          'text-xs sm:text-sm font-semibold uppercase tracking-tight',
-          'touch-manipulation select-none',
-          bgColor,
-          borderColor,
-          textColor,
-          !isRevealed && (isGivingClue || isGuessing) && 'active:scale-95 cursor-pointer',
-          isRevealed && 'opacity-80'
+          'relative w-full aspect-[3/4] rounded-xl border-2 flex flex-col items-center justify-between overflow-hidden',
+          'transition-all duration-200 ease-out',
+          'touch-manipulation select-none shadow-md hover:shadow-lg',
+          styles.card,
+          selectionStyles,
+          !isRevealed && (isGivingClue || isGuessing) && 'active:scale-95 cursor-pointer hover:scale-102',
         )}
         onClick={handleClick}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         onContextMenu={handleContextMenu}
-        disabled={isRevealed}
+        disabled={isRevealed && !showDefinition}
       >
-        <span className="text-center leading-tight break-words hyphens-auto">
-          {word}
-        </span>
+        {/* Card illustration area */}
+        <div className="flex-1 w-full flex items-center justify-center p-2">
+          {isRevealed ? (
+            <div className="flex flex-col items-center gap-1">
+              {styles.icon}
+              {revealed.type === 'agent' && (
+                <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider">Agent</span>
+              )}
+              {revealed.type === 'assassin' && (
+                <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider">Assassin</span>
+              )}
+              {revealed.type === 'bystander' && (
+                <span className="text-[10px] font-bold text-amber-600/70 uppercase tracking-wider">Bystander</span>
+              )}
+            </div>
+          ) : (
+            <div className="w-full h-full rounded-lg bg-gradient-to-br from-white/50 to-transparent flex items-center justify-center">
+              <span className="text-4xl opacity-20">?</span>
+            </div>
+          )}
+        </div>
         
-        {/* Reveal indicator */}
-        {isRevealed && (
-          <div className="absolute top-1 right-1">
-            {revealed.type === 'agent' && <span className="text-xs">✓</span>}
-            {revealed.type === 'assassin' && <span className="text-xs">☠</span>}
-            {revealed.type === 'bystander' && <span className="text-xs">○</span>}
-          </div>
-        )}
+        {/* Word label at bottom */}
+        <div className={cn(
+          'w-full py-1.5 px-1 text-center border-t',
+          styles.label,
+          'text-[10px] sm:text-xs font-bold uppercase tracking-tight leading-tight'
+        )}>
+          {word}
+        </div>
         
         {/* Who guessed indicator */}
         {isRevealed && (
-          <div className="absolute bottom-1 left-1 text-[10px] opacity-70">
+          <div className={cn(
+            'absolute top-1 right-1 text-[8px] font-bold px-1 rounded',
+            revealed.type === 'agent' ? 'bg-white/30 text-white' : 
+            revealed.type === 'assassin' ? 'bg-white/20 text-white' : 
+            'bg-amber-600/20 text-amber-800'
+          )}>
             {revealed.guessedBy === 'player1' ? 'P1' : 'P2'}
+          </div>
+        )}
+        
+        {/* Selection checkmark */}
+        {isSelected && !isRevealed && (
+          <div className="absolute top-1 left-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-xs font-bold">✓</span>
           </div>
         )}
       </button>
