@@ -10,6 +10,8 @@ interface GameActionsProps {
   playerRole: CurrentTurn;
   player1Name: string;
   player2Name: string;
+  player1Id: string;
+  player2Id: string;
   onEndTurn: () => void;
   hasActiveClue?: boolean;
   guessCount?: number;
@@ -20,6 +22,8 @@ export function GameActions({
   playerRole, 
   player1Name, 
   player2Name,
+  player1Id,
+  player2Id,
   onEndTurn,
   hasActiveClue = false,
   guessCount = 0
@@ -42,6 +46,8 @@ export function GameActions({
           playerRole={playerRole}
           player1Name={player1Name}
           player2Name={player2Name}
+          player1Id={player1Id}
+          player2Id={player2Id}
           words={game.words}
         />
         

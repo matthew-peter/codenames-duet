@@ -17,7 +17,7 @@ import { generateKeyCard } from '@/lib/game/keyGenerator';
 import { generatePin } from '@/lib/utils/pin';
 import { ClueStrictness, Game } from '@/lib/supabase/types';
 import { toast } from 'sonner';
-import { Plus, Users, History, Play, Clock, Loader2 } from 'lucide-react';
+import { Plus, Users, History, Play, Clock, Loader2, X, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 function DashboardContent() {
@@ -79,6 +79,35 @@ function DashboardContent() {
 
     fetchActiveGames();
   }, [user, supabase]);
+
+  const handleDeleteGame = async (gameId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!confirm('Are you sure you want to delete this game? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      // Delete moves first (foreign key constraint)
+      await supabase.from('moves').delete().eq('game_id', gameId);
+      
+      // Then delete the game
+      const { error } = await supabase.from('games').delete().eq('id', gameId);
+      
+      if (error) {
+        toast.error('Failed to delete game');
+        return;
+      }
+      
+      // Remove from local state
+      setActiveGames(prev => prev.filter(g => g.id !== gameId));
+      toast.success('Game deleted');
+    } catch (error) {
+      console.error('Error deleting game:', error);
+      toast.error('Failed to delete game');
+    }
+  };
 
   if (loading) {
     return (
@@ -221,45 +250,66 @@ function DashboardContent() {
                                        (game.current_turn === 'player2' && game.player2_id === user.id);
                     const isCluePhase = game.current_phase === 'clue';
                     const isWaiting = game.status === 'waiting';
+                    const yourAgents = game.player1_id === user.id ? game.player1_agents_found : game.player2_agents_found;
+                    const theirAgents = game.player1_id === user.id ? game.player2_agents_found : game.player1_agents_found;
                     
                     return (
-                      <Link
+                      <div
                         key={game.id}
-                        href={isWaiting ? `/game/${game.id}/waiting` : `/game/${game.id}`}
-                        className="block"
+                        className="flex items-center gap-2 p-3 bg-white rounded-lg border border-emerald-100 hover:border-emerald-300 transition-colors"
                       >
-                        <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-emerald-100 hover:border-emerald-300 transition-colors">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-stone-800 truncate">
-                                {isWaiting ? 'Waiting for player...' : `vs ${game.opponent_username || 'Unknown'}`}
+                        <Link
+                          href={isWaiting ? `/game/${game.id}/waiting` : `/game/${game.id}`}
+                          className="flex-1 min-w-0"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-stone-800 truncate">
+                              {isWaiting ? 'Waiting for player...' : `vs ${game.opponent_username || 'Unknown'}`}
+                            </span>
+                            {isWaiting && (
+                              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
+                                PIN: {game.pin}
                               </span>
-                              {isWaiting && (
-                                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
-                                  PIN: {game.pin}
-                                </span>
-                              )}
-                            </div>
-                            {!isWaiting && (
-                              <div className="text-xs text-stone-500 mt-0.5">
-                                {isYourTurn ? (
-                                  <span className="text-emerald-600 font-medium">
-                                    Your turn to {isCluePhase ? 'give clue' : 'guess'}
-                                  </span>
-                                ) : (
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    Waiting for {game.opponent_username}
-                                  </span>
-                                )}
-                              </div>
                             )}
                           </div>
-                          <Button size="sm" variant={isYourTurn ? 'default' : 'outline'} className={isYourTurn ? 'bg-emerald-600 hover:bg-emerald-700' : ''}>
-                            {isWaiting ? 'View' : 'Resume'}
+                          <div className="flex items-center gap-3 mt-0.5">
+                            {!isWaiting && (
+                              <>
+                                <span className="text-xs text-stone-400">
+                                  You: {yourAgents}/9 · Them: {theirAgents}/9
+                                </span>
+                                <span className="text-xs">
+                                  {isYourTurn ? (
+                                    <span className="text-emerald-600 font-medium">
+                                      Your turn ({isCluePhase ? 'clue' : 'guess'})
+                                    </span>
+                                  ) : (
+                                    <span className="text-stone-400 flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      Their turn
+                                    </span>
+                                  )}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </Link>
+                        <div className="flex items-center gap-1">
+                          <Link href={isWaiting ? `/game/${game.id}/waiting` : `/game/${game.id}`}>
+                            <Button size="sm" variant={isYourTurn ? 'default' : 'outline'} className={isYourTurn ? 'bg-emerald-600 hover:bg-emerald-700' : ''}>
+                              {isWaiting ? 'View' : 'Resume'}
+                            </Button>
+                          </Link>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="text-stone-400 hover:text-red-600 hover:bg-red-50 p-2"
+                            onClick={(e) => handleDeleteGame(game.id, e)}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                      </Link>
+                      </div>
                     );
                   })}
                 </div>

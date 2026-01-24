@@ -391,6 +391,8 @@ function GamePageContent({ gameId }: { gameId: string }) {
         playerRole={playerRole}
         player1Name={playerRole === 'player1' ? user.username : opponent?.username || 'Player 1'}
         player2Name={playerRole === 'player2' ? user.username : opponent?.username || 'Player 2'}
+        player1Id={game.player1_id}
+        player2Id={game.player2_id || ''}
         onEndTurn={handleEndTurn}
         hasActiveClue={hasActiveClue}
         guessCount={guessCount}
