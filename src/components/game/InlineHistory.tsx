@@ -2,7 +2,6 @@
 
 import { Move, CurrentTurn } from '@/lib/supabase/types';
 import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface InlineHistoryProps {
   moves: Move[];
@@ -60,16 +59,16 @@ export function InlineHistory({
 
   if (groupedMoves.length === 0) {
     return (
-      <div className="px-3 py-4 text-center text-stone-500 text-sm">
+      <div className="px-3 py-4 text-center text-stone-500 text-sm h-full flex items-center justify-center">
         No moves yet. Give or wait for a clue to start!
       </div>
     );
   }
 
   return (
-    <ScrollArea className="h-full">
+    <div className="h-full overflow-y-auto">
       <div className="px-3 py-2 space-y-2">
-        <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wide">Move History</h3>
+        <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wide sticky top-0 bg-stone-800/90 py-1">Game Log</h3>
         
         <div className="space-y-2">
           {groupedMoves.map((group, idx) => {
@@ -131,6 +130,6 @@ export function InlineHistory({
           })}
         </div>
       </div>
-    </ScrollArea>
+    </div>
   );
 }

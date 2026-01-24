@@ -63,7 +63,7 @@ export function ClueHistory({ moves, playerRole, player1Name, player2Name, playe
       </SheetTrigger>
       <SheetContent side="right" className="w-full sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Move History</SheetTitle>
+          <SheetTitle>Game Log</SheetTitle>
         </SheetHeader>
         <ScrollArea className="h-[calc(100vh-100px)] mt-4 pr-4">
           {groupedMoves.length === 0 ? (
