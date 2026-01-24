@@ -16,11 +16,11 @@ export function Header() {
   const { user, signOut } = useAuth();
 
   return (
-    <header className="bg-green-600 text-white shadow-md">
-      <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <span className="text-xl font-bold">CODENAMES</span>
-          <span className="text-sm font-medium bg-green-700 px-2 py-0.5 rounded">DUET</span>
+    <header className="bg-stone-800 text-white">
+      <div className="max-w-4xl mx-auto px-3 py-1.5 flex items-center justify-between">
+        <Link href="/dashboard" className="flex items-center gap-1.5">
+          <span className="text-sm font-bold">CODENAMES</span>
+          <span className="text-[10px] font-medium bg-emerald-600 px-1.5 py-0.5 rounded">DUET</span>
         </Link>
 
         {user && (

@@ -52,20 +52,20 @@ function WordCard({
       if (revealed.type === 'agent') {
         // Forest green - found agent
         return {
-          card: 'bg-emerald-700 border-emerald-900',
-          text: 'text-white',
+          card: 'bg-emerald-600 border-emerald-800 border-3',
+          text: 'text-white font-black',
         };
       } else if (revealed.type === 'assassin') {
         // Black - assassin
         return {
-          card: 'bg-stone-900 border-stone-950',
-          text: 'text-white',
+          card: 'bg-stone-800 border-stone-900 border-3',
+          text: 'text-red-400 font-black',
         };
       } else {
         // Tan/beige - bystander
         return {
-          card: 'bg-amber-100 border-amber-300',
-          text: 'text-amber-900',
+          card: 'bg-stone-300 border-stone-400 border-3',
+          text: 'text-stone-700',
         };
       }
     }
@@ -74,20 +74,20 @@ function WordCard({
     if (cardTypeForMe === 'agent') {
       // Light green tint for your agents
       return {
-        card: 'bg-emerald-100 border-emerald-400 border-2',
-        text: 'text-emerald-900',
+        card: 'bg-emerald-50 border-emerald-500 border-2',
+        text: 'text-emerald-800',
       };
     } else if (cardTypeForMe === 'assassin') {
       // Dark gray for assassins
       return {
-        card: 'bg-stone-300 border-stone-600 border-2',
-        text: 'text-stone-900',
+        card: 'bg-stone-200 border-stone-500 border-2',
+        text: 'text-stone-800',
       };
     } else {
       // Cream/beige for bystanders
       return {
         card: 'bg-amber-50 border-amber-200',
-        text: 'text-stone-700',
+        text: 'text-stone-600',
       };
     }
   };
@@ -177,12 +177,12 @@ function WordCard({
           {word}
         </span>
         
-        {/* Revealed overlay icon */}
+        {/* Revealed indicator - small icon in corner */}
         {isRevealed && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-            {revealed.type === 'agent' && <User className="w-6 h-6 text-white drop-shadow" />}
-            {revealed.type === 'assassin' && <Skull className="w-6 h-6 text-white drop-shadow" />}
-            {revealed.type === 'bystander' && <Eye className="w-6 h-6 text-amber-800 drop-shadow" />}
+          <div className="absolute top-0.5 right-0.5">
+            {revealed.type === 'agent' && <User className="w-3 h-3 text-white" />}
+            {revealed.type === 'assassin' && <Skull className="w-3 h-3 text-red-400" />}
+            {revealed.type === 'bystander' && <Eye className="w-3 h-3 text-stone-500" />}
           </div>
         )}
         
