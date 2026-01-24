@@ -13,6 +13,7 @@ import { useGameStore } from '@/lib/store/gameStore';
 import { createClient } from '@/lib/supabase/client';
 import { Game, Move, CurrentTurn } from '@/lib/supabase/types';
 import { processGuess, getNextTurn } from '@/lib/game/gameLogic';
+import { sendTurnNotification } from '@/lib/notifications';
 import { toast } from 'sonner';
 
 function GamePageContent({ gameId }: { gameId: string }) {
@@ -177,6 +178,16 @@ function GamePageContent({ gameId }: { gameId: string }) {
       return;
     }
 
+    // Notify opponent it's their turn to guess
+    if (opponent) {
+      sendTurnNotification(
+        game.id,
+        opponent.id,
+        user.username,
+        `${user.username} gave a clue: ${clue} (${clueNumber})`
+      );
+    }
+
     clearSelectedWords();
     toast.success(`Clue given: ${clue} (${clueNumber})`);
   }, [game, user, playerRole, supabase, clearSelectedWords]);
@@ -241,6 +252,16 @@ function GamePageContent({ gameId }: { gameId: string }) {
         updates.sudden_death = true;
       }
       
+      // Notify opponent it's their turn to give a clue
+      if (opponent) {
+        sendTurnNotification(
+          game.id,
+          opponent.id,
+          user.username,
+          `${user.username} hit a bystander. Your turn to give a clue!`
+        );
+      }
+      
       toast.info('Bystander! Turn over.');
     } else {
       // Correct guess
@@ -289,9 +310,18 @@ function GamePageContent({ gameId }: { gameId: string }) {
     if (error) {
       toast.error('Failed to end turn');
     } else {
+      // Notify opponent it's their turn
+      if (opponent) {
+        sendTurnNotification(
+          game.id,
+          opponent.id,
+          user.username,
+          `${user.username} ended their turn. Your turn to give a clue!`
+        );
+      }
       toast.info('Turn ended');
     }
-  }, [game, user, playerRole, supabase]);
+  }, [game, user, playerRole, supabase, opponent]);
 
   if (authLoading || loading) {
     return (

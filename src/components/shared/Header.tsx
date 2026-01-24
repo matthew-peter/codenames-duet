@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Button } from '@/components/ui/button';
+import { NotificationToggle } from '@/components/notifications/NotificationToggle';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +25,9 @@ export function Header() {
         </Link>
 
         {user && (
-          <DropdownMenu>
+          <div className="flex items-center gap-1">
+            <NotificationToggle />
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="text-white hover:bg-green-700 gap-2">
                 <span className="hidden sm:inline">{user.username}</span>
@@ -58,6 +61,7 @@ export function Header() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         )}
       </div>
     </header>
