@@ -29,21 +29,25 @@ export function usePushNotifications() {
 
   useEffect(() => {
     // Check if push notifications are supported
-    const supported = 'serviceWorker' in navigator && 'PushManager' in window;
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     setIsSupported(supported);
 
     if (supported) {
       setPermission(Notification.permission);
       
-      // Check for existing subscription
-      navigator.serviceWorker.ready.then(registration => {
-        registration.pushManager.getSubscription().then(sub => {
+      // Register service worker and check for existing subscription
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          return registration.pushManager.getSubscription();
+        })
+        .then(sub => {
           setSubscription(sub);
           setIsChecking(false);
+        })
+        .catch((err) => {
+          console.error('Service worker registration failed:', err);
+          setIsChecking(false);
         });
-      }).catch(() => {
-        setIsChecking(false);
-      });
     } else {
       setIsChecking(false);
     }
