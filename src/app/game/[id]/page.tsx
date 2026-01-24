@@ -347,7 +347,7 @@ function GamePageContent({ gameId }: { gameId: string }) {
         guessCount={guessCount}
       />
       
-      <main className="flex-1 overflow-auto py-4 px-2">
+      <main className="flex-1 overflow-auto py-2 px-1">
         <GameBoard
           game={game}
           playerRole={playerRole}

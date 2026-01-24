@@ -35,7 +35,7 @@ export function GameActions({
   const canEndTurn = isGuessing && guessCount > 0;
   
   return (
-    <div className="bg-gradient-to-r from-stone-800 via-stone-700 to-stone-800 border-t border-stone-600 p-3">
+    <div className="bg-stone-800 border-t border-stone-600 px-2 py-2">
       <div className="max-w-lg mx-auto flex items-center justify-between">
         <ClueHistory
           moves={moves}

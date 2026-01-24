@@ -24,85 +24,57 @@ export function GameStatus({ game, playerRole, opponentName, currentClue, guessC
   const theirRemaining = playerRole === 'player1' ? remaining.player2 : remaining.player1;
   
   return (
-    <div className="bg-gradient-to-r from-stone-700 via-stone-600 to-stone-700 px-4 py-3 shadow-lg">
+    <div className="bg-gradient-to-r from-stone-700 via-stone-600 to-stone-700 px-3 py-2 shadow-lg">
       <div className="max-w-lg mx-auto">
-        {/* Turn indicator */}
-        <div className="text-center mb-3">
+        {/* Top row: Turn indicator + Agents found */}
+        <div className="flex items-center justify-between mb-2">
           <div
             className={cn(
-              'inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold uppercase tracking-wider shadow-md',
+              'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider',
               isMyTurn
-                ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white'
+                ? 'bg-emerald-600 text-white'
                 : 'bg-stone-500 text-stone-200'
             )}
           >
-            {isMyTurn && <Zap className="w-4 h-4" />}
-            {isMyTurn ? 'Your Turn' : `${opponentName || 'Opponent'}'s Turn`}
-          </div>
-        </div>
-        
-        {/* Current clue */}
-        {currentClue && (
-          <div className="text-center mb-3 p-3 bg-white/10 backdrop-blur rounded-xl border border-white/20">
-            <p className="text-[10px] text-white/70 uppercase tracking-widest mb-1">Current Clue</p>
-            <p className="text-xl font-black text-white tracking-wide">
-              {currentClue.clue_word}
-              <span className="ml-2 text-yellow-300">{currentClue.clue_number}</span>
-            </p>
-            {guessCount > 0 && (
-              <p className="text-xs text-white/60 mt-1">
-                Guesses made: {guessCount}
-              </p>
-            )}
-          </div>
-        )}
-        
-        {/* Stats row */}
-        <div className="flex items-center justify-between">
-          {/* Timer tokens */}
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-white/70" />
-            <div className="flex gap-1">
-              {Array.from({ length: 9 }).map((_, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    'w-3 h-3 rounded-full transition-all',
-                    i < game.timer_tokens
-                      ? 'bg-gradient-to-br from-amber-300 to-amber-500 shadow-sm shadow-amber-400/50'
-                      : 'bg-white/20'
-                  )}
-                />
-              ))}
-            </div>
-            {inSuddenDeath && (
-              <span className="text-red-300 font-bold ml-1 text-xs animate-pulse">
-                ⚠ SUDDEN DEATH
-              </span>
-            )}
+            {isMyTurn && <Zap className="w-3 h-3" />}
+            {isMyTurn ? 'Your Turn' : 'Their Turn'}
           </div>
           
-          {/* Agents found */}
-          <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full">
-            <User className="w-4 h-4 text-cyan-300" />
+          {/* Timer dots */}
+          <div className="flex gap-0.5">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  'w-2.5 h-2.5 rounded-full',
+                  i < game.timer_tokens ? 'bg-amber-400' : 'bg-white/20'
+                )}
+              />
+            ))}
+          </div>
+          
+          {/* Agents counter */}
+          <div className="flex items-center gap-1 text-xs">
+            <User className="w-3 h-3 text-cyan-300" />
             <span className="text-cyan-300 font-bold">{agentsFound}</span>
             <span className="text-white/50">/</span>
             <span className="text-white/70">{totalAgents}</span>
           </div>
         </div>
         
-        {/* Remaining per player */}
-        <div className="flex justify-between mt-3 text-xs">
-          <div className="bg-white/10 px-3 py-1.5 rounded-lg">
-            <span className="text-white/60">Your key: </span>
-            <span className="font-bold text-cyan-300">{myRemaining}</span>
-            <span className="text-white/60"> left</span>
+        {/* Current clue - compact */}
+        {currentClue && (
+          <div className="text-center py-1.5 px-3 bg-white/10 rounded-lg mb-2">
+            <span className="text-lg font-black text-white">{currentClue.clue_word}</span>
+            <span className="ml-2 text-yellow-300 font-bold">{currentClue.clue_number}</span>
+            {guessCount > 0 && <span className="text-xs text-white/50 ml-2">({guessCount} guessed)</span>}
           </div>
-          <div className="bg-white/10 px-3 py-1.5 rounded-lg">
-            <span className="text-white/60">Their key: </span>
-            <span className="font-bold text-cyan-300">{theirRemaining}</span>
-            <span className="text-white/60"> left</span>
-          </div>
+        )}
+        
+        {/* Remaining per player - inline */}
+        <div className="flex justify-between text-[10px] text-white/60">
+          <span>Your key: <span className="text-cyan-300 font-bold">{myRemaining}</span> left</span>
+          <span>Their key: <span className="text-cyan-300 font-bold">{theirRemaining}</span> left</span>
         </div>
       </div>
     </div>
