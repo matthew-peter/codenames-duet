@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/components/auth/AuthProvider';
 import { Header } from '@/components/shared/Header';
@@ -17,7 +17,7 @@ import { generateKeyCard } from '@/lib/game/keyGenerator';
 import { generatePin } from '@/lib/utils/pin';
 import { ClueStrictness, Game } from '@/lib/supabase/types';
 import { toast } from 'sonner';
-import { Plus, Users, History, Share2 } from 'lucide-react';
+import { Plus, Users, History, Play, Clock, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 function DashboardContent() {
@@ -28,11 +28,57 @@ function DashboardContent() {
   const [joinPin, setJoinPin] = useState('');
   const [joiningGame, setJoiningGame] = useState(false);
   const [creatingGame, setCreatingGame] = useState(false);
+  const [activeGames, setActiveGames] = useState<Array<Game & { opponent_username?: string }>>([]);
+  const [loadingGames, setLoadingGames] = useState(true);
   
   // Game creation settings
   const [timerTokens, setTimerTokens] = useState(9);
   const [clueStrictness, setClueStrictness] = useState<ClueStrictness>('strict');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  // Fetch active games
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchActiveGames = async () => {
+      setLoadingGames(true);
+      
+      // Get games where user is player1 or player2 and status is 'playing' or 'waiting'
+      const { data: games, error } = await supabase
+        .from('games')
+        .select('*')
+        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+        .in('status', ['playing', 'waiting'])
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching games:', error);
+        setLoadingGames(false);
+        return;
+      }
+
+      // Fetch opponent usernames
+      const gamesWithOpponents = await Promise.all(
+        (games || []).map(async (game) => {
+          const opponentId = game.player1_id === user.id ? game.player2_id : game.player1_id;
+          if (opponentId) {
+            const { data: opponent } = await supabase
+              .from('users')
+              .select('username')
+              .eq('id', opponentId)
+              .single();
+            return { ...game, opponent_username: opponent?.username };
+          }
+          return game;
+        })
+      );
+
+      setActiveGames(gamesWithOpponents);
+      setLoadingGames(false);
+    };
+
+    fetchActiveGames();
+  }, [user, supabase]);
 
   if (loading) {
     return (
@@ -153,6 +199,74 @@ function DashboardContent() {
         <h1 className="text-2xl font-bold text-stone-800 mb-6">
           Welcome, {user.username}!
         </h1>
+
+        {/* Active Games */}
+        {(loadingGames || activeGames.length > 0) && (
+          <Card className="mb-4 border-emerald-200 bg-emerald-50/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Play className="h-5 w-5 text-emerald-600" />
+                Active Games
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingGames ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {activeGames.map((game) => {
+                    const isYourTurn = (game.current_turn === 'player1' && game.player1_id === user.id) ||
+                                       (game.current_turn === 'player2' && game.player2_id === user.id);
+                    const isCluePhase = game.current_phase === 'clue';
+                    const isWaiting = game.status === 'waiting';
+                    
+                    return (
+                      <Link
+                        key={game.id}
+                        href={isWaiting ? `/game/${game.id}/waiting` : `/game/${game.id}`}
+                        className="block"
+                      >
+                        <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-emerald-100 hover:border-emerald-300 transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-stone-800 truncate">
+                                {isWaiting ? 'Waiting for player...' : `vs ${game.opponent_username || 'Unknown'}`}
+                              </span>
+                              {isWaiting && (
+                                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">
+                                  PIN: {game.pin}
+                                </span>
+                              )}
+                            </div>
+                            {!isWaiting && (
+                              <div className="text-xs text-stone-500 mt-0.5">
+                                {isYourTurn ? (
+                                  <span className="text-emerald-600 font-medium">
+                                    Your turn to {isCluePhase ? 'give clue' : 'guess'}
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    Waiting for {game.opponent_username}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <Button size="sm" variant={isYourTurn ? 'default' : 'outline'} className={isYourTurn ? 'bg-emerald-600 hover:bg-emerald-700' : ''}>
+                            {isWaiting ? 'View' : 'Resume'}
+                          </Button>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
         
         {/* Create Game */}
         <Card className="mb-4">
