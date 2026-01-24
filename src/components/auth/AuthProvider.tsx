@@ -22,19 +22,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
 
   useEffect(() => {
-    // Check for existing session
+    let isMounted = true;
+    
+    // Check for existing session with timeout
     const checkUser = async () => {
       try {
-        console.log('AuthProvider: Checking session...');
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // Add a timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Session check timeout')), 5000);
+        });
+        
+        const sessionPromise = supabase.auth.getSession();
+        
+        const result = await Promise.race([sessionPromise, timeoutPromise]) as Awaited<typeof sessionPromise>;
+        const { data: { session }, error: sessionError } = result;
+        
+        if (!isMounted) return;
         
         if (sessionError) {
           console.error('AuthProvider: Session error:', sessionError);
           setLoading(false);
           return;
         }
-        
-        console.log('AuthProvider: Session:', session?.user?.id || 'none');
         
         if (session?.user) {
           // Get user profile from our users table
@@ -44,23 +53,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .eq('id', session.user.id)
             .single();
           
+          if (!isMounted) return;
+          
           if (profileError) {
             console.error('AuthProvider: Profile error:', profileError);
           }
           
           if (profile) {
-            console.log('AuthProvider: User profile loaded:', profile.username);
             setUser(profile);
             setStoreUser(profile);
-          } else {
-            console.log('AuthProvider: No profile found for user');
           }
         }
       } catch (error) {
         console.error('AuthProvider: Error checking user:', error);
       } finally {
-        console.log('AuthProvider: Setting loading to false');
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -69,6 +78,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!isMounted) return;
+        
         if (event === 'SIGNED_IN' && session?.user) {
           const { data: profile } = await supabase
             .from('users')
@@ -76,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .eq('id', session.user.id)
             .single();
           
-          if (profile) {
+          if (profile && isMounted) {
             setUser(profile);
             setStoreUser(profile);
           }
@@ -88,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, [supabase, setStoreUser]);

@@ -47,50 +47,66 @@ function WordCard({
     if (isRevealed) {
       if (revealed.type === 'agent') {
         return {
-          card: 'bg-gradient-to-br from-cyan-400 via-cyan-500 to-cyan-600 border-cyan-300 shadow-cyan-200',
+          card: 'bg-gradient-to-br from-green-400 via-green-500 to-green-600 border-green-300',
           text: 'text-white',
-          label: 'bg-white/90 text-cyan-700',
-          icon: <User className="w-8 h-8 text-white/80" />,
+          label: 'bg-green-700 text-white',
+          icon: <User className="w-10 h-10 text-white" />,
+          iconLabel: 'AGENT',
         };
       } else if (revealed.type === 'assassin') {
         return {
-          card: 'bg-gradient-to-br from-stone-700 via-stone-800 to-stone-900 border-stone-600 shadow-stone-400',
+          card: 'bg-gradient-to-br from-stone-800 via-stone-900 to-black border-stone-600',
           text: 'text-white',
-          label: 'bg-stone-900 text-white',
-          icon: <Skull className="w-8 h-8 text-white/80" />,
+          label: 'bg-black text-white',
+          icon: <Skull className="w-10 h-10 text-red-500" />,
+          iconLabel: 'ASSASSIN',
         };
       } else {
         // Bystander
         return {
-          card: 'bg-gradient-to-br from-amber-100 via-orange-100 to-amber-200 border-amber-300 shadow-amber-100',
+          card: 'bg-gradient-to-br from-amber-200 via-amber-300 to-orange-300 border-amber-400',
           text: 'text-amber-900',
-          label: 'bg-white/90 text-amber-800',
-          icon: <Eye className="w-8 h-8 text-amber-600/60" />,
+          label: 'bg-amber-500 text-white',
+          icon: <Eye className="w-10 h-10 text-amber-700" />,
+          iconLabel: 'BYSTANDER',
         };
       }
     }
     
-    // Unrevealed card - show subtle hints for clue giver
-    let borderHint = 'border-stone-200';
+    // Unrevealed card - show VERY clear hints for clue giver
     if (cardTypeForMe === 'agent') {
-      borderHint = 'border-cyan-400 border-2';
+      return {
+        card: 'bg-gradient-to-br from-green-100 to-green-200 border-green-500 border-3',
+        text: 'text-green-800',
+        label: 'bg-green-500 text-white',
+        icon: null,
+        iconLabel: null,
+      };
     } else if (cardTypeForMe === 'assassin') {
-      borderHint = 'border-stone-800 border-2';
+      return {
+        card: 'bg-gradient-to-br from-stone-300 to-stone-400 border-stone-800 border-3',
+        text: 'text-stone-900',
+        label: 'bg-stone-800 text-white',
+        icon: null,
+        iconLabel: null,
+      };
+    } else {
+      // Bystander for me
+      return {
+        card: 'bg-gradient-to-br from-amber-50 to-amber-100 border-amber-300 border-2',
+        text: 'text-amber-800',
+        label: 'bg-white text-stone-700',
+        icon: null,
+        iconLabel: null,
+      };
     }
-    
-    return {
-      card: `bg-gradient-to-br from-stone-50 to-stone-100 ${borderHint} shadow-stone-100`,
-      text: 'text-stone-700',
-      label: 'bg-white text-stone-800',
-      icon: null,
-    };
   };
   
   const styles = getCardStyles();
   
   // Selection state for clue giving
   const selectionStyles = isSelected && !isRevealed 
-    ? 'ring-4 ring-blue-400 ring-offset-2 border-blue-500 scale-105' 
+    ? 'ring-4 ring-blue-500 ring-offset-2 scale-105' 
     : '';
   
   const handleTouchStart = useCallback(() => {
@@ -156,24 +172,42 @@ function WordCard({
                 <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider">Agent</span>
               )}
               {revealed.type === 'assassin' && (
-                <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider">Assassin</span>
+                <span className="text-[10px] font-bold text-white uppercase tracking-wider">ASSASSIN</span>
               )}
               {revealed.type === 'bystander' && (
-                <span className="text-[10px] font-bold text-amber-600/70 uppercase tracking-wider">Bystander</span>
+                <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">BYSTANDER</span>
               )}
             </div>
           ) : (
-            <div className="w-full h-full rounded-lg bg-gradient-to-br from-white/50 to-transparent flex items-center justify-center">
-              <span className="text-4xl opacity-20">?</span>
+            // Show card type indicator for clue giver
+            <div className="w-full h-full flex items-center justify-center">
+              {cardTypeForMe === 'agent' && (
+                <div className="text-center">
+                  <User className="w-8 h-8 text-green-600 mx-auto opacity-50" />
+                  <span className="text-[9px] font-bold text-green-700 opacity-60">AGENT</span>
+                </div>
+              )}
+              {cardTypeForMe === 'assassin' && (
+                <div className="text-center">
+                  <Skull className="w-8 h-8 text-stone-700 mx-auto opacity-50" />
+                  <span className="text-[9px] font-bold text-stone-800 opacity-60">ASSASSIN</span>
+                </div>
+              )}
+              {cardTypeForMe === 'bystander' && (
+                <div className="text-center">
+                  <Eye className="w-8 h-8 text-amber-500 mx-auto opacity-40" />
+                  <span className="text-[9px] font-bold text-amber-600 opacity-50">BYSTANDER</span>
+                </div>
+              )}
             </div>
           )}
         </div>
         
         {/* Word label at bottom */}
         <div className={cn(
-          'w-full py-1.5 px-1 text-center border-t',
+          'w-full py-2 px-1 text-center',
           styles.label,
-          'text-[10px] sm:text-xs font-bold uppercase tracking-tight leading-tight'
+          'text-[9px] sm:text-[11px] font-black uppercase tracking-tight leading-tight'
         )}>
           {word}
         </div>
@@ -181,10 +215,10 @@ function WordCard({
         {/* Who guessed indicator */}
         {isRevealed && (
           <div className={cn(
-            'absolute top-1 right-1 text-[8px] font-bold px-1 rounded',
-            revealed.type === 'agent' ? 'bg-white/30 text-white' : 
-            revealed.type === 'assassin' ? 'bg-white/20 text-white' : 
-            'bg-amber-600/20 text-amber-800'
+            'absolute top-1 right-1 text-[8px] font-bold px-1.5 py-0.5 rounded',
+            revealed.type === 'agent' ? 'bg-green-800 text-white' : 
+            revealed.type === 'assassin' ? 'bg-red-600 text-white' : 
+            'bg-amber-600 text-white'
           )}>
             {revealed.guessedBy === 'player1' ? 'P1' : 'P2'}
           </div>
@@ -192,8 +226,8 @@ function WordCard({
         
         {/* Selection checkmark */}
         {isSelected && !isRevealed && (
-          <div className="absolute top-1 left-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-            <span className="text-white text-xs font-bold">✓</span>
+          <div className="absolute top-1 left-1 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
+            <span className="text-white text-sm font-bold">✓</span>
           </div>
         )}
       </button>
