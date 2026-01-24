@@ -113,6 +113,7 @@ function GamePageContent({ gameId }: { gameId: string }) {
           filter: `id=eq.${gameId}`,
         },
         (payload) => {
+          console.log('Game update received:', payload);
           const updatedGame = payload.new as Game;
           setGame(updatedGame);
         }
@@ -130,7 +131,9 @@ function GamePageContent({ gameId }: { gameId: string }) {
           router.push('/dashboard');
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Game channel status:', status);
+      });
 
     // Subscribe to moves
     const movesChannel = supabase

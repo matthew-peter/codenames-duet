@@ -155,6 +155,9 @@ CREATE POLICY "Players can delete moves in their games"
   );
 
 -- Enable realtime for games and moves
+-- Set REPLICA IDENTITY FULL so realtime sends full row data for updates
+ALTER TABLE public.games REPLICA IDENTITY FULL;
+ALTER TABLE public.moves REPLICA IDENTITY FULL;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.games;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.moves;
 
