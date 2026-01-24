@@ -60,22 +60,12 @@ function WordCard({
   const guessedByThem = revealed?.guessedBy && revealed?.guessedBy !== playerRole;
   
   // Key insight: A revealed card might be a bystander for whoever guessed it,
-  // but could still be an agent on MY key that I need to find!
+  // but could still be an agent on MY key that my partner needs to find
   const isStillMyAgent = isRevealed && revealed.type !== 'agent' && cardTypeForMe === 'agent';
   
   // Card styling based on state
   const getCardStyles = () => {
     if (isRevealed) {
-      // Special case: They guessed it as bystander, but it's MY agent still to find
-      if (isStillMyAgent) {
-        return {
-          card: 'bg-emerald-100 border-emerald-500 border-2',
-          text: 'text-emerald-800',
-          indicator: '★ YOUR AGENT',
-          indicatorColor: 'bg-emerald-600 text-white',
-        };
-      }
-      
       if (revealed.type === 'agent') {
         // Found agent - solid green
         return {
@@ -93,12 +83,16 @@ function WordCard({
           indicatorColor: 'bg-red-900 text-white',
         };
       } else {
-        // Bystander - but NOT an agent for me
+        // Bystander - show who guessed it, but add green border if it's still MY agent
         return {
-          card: 'bg-amber-200 border-amber-400',
+          card: isStillMyAgent 
+            ? 'bg-amber-200 border-emerald-500 border-2' // amber bg + green border = bystander that's still your agent
+            : 'bg-amber-200 border-amber-400',
           text: 'text-amber-900',
           indicator: guessedByMe ? '○ YOU' : '○ THEM',
-          indicatorColor: 'bg-amber-300 text-amber-800',
+          indicatorColor: isStillMyAgent 
+            ? 'bg-emerald-600 text-white' // green indicator to emphasize it's still an agent
+            : 'bg-amber-300 text-amber-800',
         };
       }
     }
