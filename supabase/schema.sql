@@ -117,6 +117,10 @@ CREATE POLICY "Players can update their games"
     OR player2_id = auth.uid()
   );
 
+CREATE POLICY "Players can delete their own games"
+  ON public.games FOR DELETE
+  USING (player1_id = auth.uid() OR player2_id = auth.uid());
+
 -- Moves policies
 CREATE POLICY "Players can view moves in their games"
   ON public.moves FOR SELECT
@@ -137,6 +141,16 @@ CREATE POLICY "Players can insert moves in their games"
       WHERE games.id = game_id 
         AND (games.player1_id = auth.uid() OR games.player2_id = auth.uid())
         AND games.status = 'playing'
+    )
+  );
+
+CREATE POLICY "Players can delete moves in their games"
+  ON public.moves FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.games 
+      WHERE games.id = moves.game_id 
+        AND (games.player1_id = auth.uid() OR games.player2_id = auth.uid())
     )
   );
 

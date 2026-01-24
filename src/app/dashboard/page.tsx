@@ -96,8 +96,8 @@ function DashboardContent() {
         { event: 'UPDATE', schema: 'public', table: 'games' },
         (payload) => {
           const updatedGame = payload.new as Game;
-          // If game is now completed or lost, remove from active games
-          if (updatedGame.status === 'completed' || updatedGame.status === 'lost') {
+          // If game is now completed or abandoned, remove from active games
+          if (updatedGame.status === 'completed' || updatedGame.status === 'abandoned') {
             setActiveGames(prev => prev.filter(g => g.id !== updatedGame.id));
           }
         }
@@ -122,9 +122,14 @@ function DashboardContent() {
       await supabase.from('moves').delete().eq('game_id', gameId);
       
       // Then delete the game
-      const { error } = await supabase.from('games').delete().eq('id', gameId);
+      const { error, count } = await supabase
+        .from('games')
+        .delete()
+        .eq('id', gameId)
+        .select();
       
       if (error) {
+        console.error('Delete error:', error);
         toast.error('Failed to delete game');
         return;
       }
