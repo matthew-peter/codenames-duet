@@ -109,7 +109,8 @@ function WordCard({
     ? 'ring-4 ring-blue-500 ring-offset-2 scale-105' 
     : '';
   
-  const handleTouchStart = useCallback(() => {
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent click from also firing
     isLongPress.current = false;
     longPressTimer.current = setTimeout(() => {
       isLongPress.current = true;
@@ -117,7 +118,8 @@ function WordCard({
     }, 2000); // 2 second long press for dictionary
   }, []);
   
-  const handleTouchEnd = useCallback(() => {
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent click from also firing
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
     }
