@@ -21,8 +21,10 @@ export function GameStatus({ game, playerRole, opponentName, currentClue, guessC
   const totalAgents = countTotalAgentsNeeded(game.key_card);
   const remaining = getRemainingAgentsPerPlayer(game);
   
-  const myRemaining = playerRole === 'player1' ? remaining.player1 : remaining.player2;
-  const theirRemaining = playerRole === 'player1' ? remaining.player2 : remaining.player1;
+  // In Codenames Duet: player1's key shows agents that player2 needs to find (when guessing)
+  // So "my remaining" = how many I still need to find = my PARTNER's agents remaining
+  const myRemaining = playerRole === 'player1' ? remaining.player2 : remaining.player1;
+  const theirRemaining = playerRole === 'player1' ? remaining.player1 : remaining.player2;
   
   // Simplified status logic:
   // - My turn to give clue: I'm clue giver (current_turn) AND phase is clue
