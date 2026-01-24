@@ -150,23 +150,45 @@ function GamePageContent({ gameId }: { gameId: string }) {
           table: 'moves',
           filter: `game_id=eq.${gameId}`,
         },
-        (payload) => {
+        async (payload) => {
           const newMove = payload.new as Move;
           addMove(newMove);
           
-          // If this is a guess from the OTHER player, show feedback
+          // If this is a guess from the OTHER player, show feedback and refetch game
           if (newMove.move_type === 'guess' && newMove.player_id !== user?.id) {
-            const wordIndex = newMove.guess_index;
             const result = newMove.guess_result;
             
-            // We need to get the word - fetch it from current game state
-            // The game state will also update via the game channel
             if (result === 'agent') {
               toast.success(`Partner found an agent! ✓`);
             } else if (result === 'bystander') {
               toast.info(`Partner hit a bystander`);
             } else if (result === 'assassin') {
               toast.error(`Partner hit the assassin! ☠`);
+            }
+            
+            // Refetch game to ensure board state is up to date
+            const { data: updatedGame } = await supabase
+              .from('games')
+              .select('*')
+              .eq('id', gameId)
+              .single();
+            
+            if (updatedGame) {
+              console.log('Refetched game after partner guess:', updatedGame.board_state);
+              setGame(updatedGame);
+            }
+          }
+          
+          // Also refetch for clues from other player
+          if (newMove.move_type === 'clue' && newMove.player_id !== user?.id) {
+            const { data: updatedGame } = await supabase
+              .from('games')
+              .select('*')
+              .eq('id', gameId)
+              .single();
+            
+            if (updatedGame) {
+              setGame(updatedGame);
             }
           }
         }
