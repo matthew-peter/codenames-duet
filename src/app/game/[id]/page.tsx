@@ -37,6 +37,45 @@ function GamePageContent({ gameId }: { gameId: string }) {
   const [loading, setLoading] = useState(true);
   const [playerRole, setPlayerRole] = useState<CurrentTurn | null>(null);
 
+  // Refetch game state when app becomes visible (for PWA background/foreground)
+  useEffect(() => {
+    if (!gameId || !user) return;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        console.log('App became visible, refetching game state...');
+        
+        // Refetch game
+        const { data: gameData } = await supabase
+          .from('games')
+          .select('*')
+          .eq('id', gameId)
+          .single();
+
+        if (gameData) {
+          setGame(gameData);
+        }
+
+        // Refetch moves
+        const { data: movesData } = await supabase
+          .from('moves')
+          .select('*')
+          .eq('game_id', gameId)
+          .order('created_at', { ascending: true });
+
+        if (movesData) {
+          setMoves(movesData);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [gameId, user, supabase, setGame, setMoves]);
+
   // Fetch game and set up subscriptions
   useEffect(() => {
     if (!gameId || !user) return;
