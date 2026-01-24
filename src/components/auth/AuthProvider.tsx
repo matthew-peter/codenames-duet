@@ -1,14 +1,9 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { User } from '@/lib/supabase/types';
 import { useGameStore } from '@/lib/store/gameStore';
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 interface AuthContextType {
   user: User | null;
@@ -20,123 +15,98 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Singleton supabase client
+let supabaseInstance: ReturnType<typeof createBrowserClient> | null = null;
+
+function getSupabase() {
+  if (!supabaseInstance) {
+    supabaseInstance = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
+  return supabaseInstance;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const setStoreUser = useGameStore((state) => state.setUser);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    let mounted = true;
+    if (initialized.current) return;
+    initialized.current = true;
 
-    // Set a timeout - if getSession takes too long, just continue
-    const timeout = setTimeout(() => {
-      if (mounted && loading) {
-        console.log('Session check timed out, continuing without session');
-        setLoading(false);
-      }
-    }, 3000);
+    const supabase = getSupabase();
 
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => {
-        if (!mounted) return;
-        clearTimeout(timeout);
-        
-        if (session?.user) {
-          // Load profile in background, don't block
-          supabase
+    const init = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.user) {
+          const { data: profile } = await supabase
             .from('users')
             .select('*')
-            .eq('id', session.user.id)
-            .single()
-            .then(({ data }) => {
-              if (mounted && data) {
-                setUser(data);
-                setStoreUser(data);
-              }
-            });
+            .eq('id', data.session.user.id)
+            .single();
+          if (profile) {
+            setUser(profile);
+            setStoreUser(profile);
+          }
         }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Session check error:', err);
-        if (mounted) {
-          clearTimeout(timeout);
-          setLoading(false);
-        }
-      });
+      } catch {
+        // Ignore errors
+      }
+      setLoading(false);
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string) => {
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setStoreUser(null);
       }
     });
 
-    return () => {
-      mounted = false;
-      clearTimeout(timeout);
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [setStoreUser]);
 
   async function signUp(email: string, password: string, username: string): Promise<{ error?: string }> {
-    console.log('signUp called');
-    
+    const supabase = getSupabase();
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { username } },
     });
 
-    console.log('signUp result:', { data, error });
-
-    if (error) {
-      return { error: error.message };
-    }
+    if (error) return { error: error.message };
 
     if (data.user) {
-      // Create profile immediately
-      const { error: insertError } = await supabase.from('users').insert({ 
-        id: data.user.id, 
-        username 
-      });
-      
-      console.log('profile insert result:', { insertError });
-      
-      if (!insertError) {
-        const profile = { id: data.user.id, username, created_at: new Date().toISOString() };
-        setUser(profile);
-        setStoreUser(profile);
-      }
+      await supabase.from('users').insert({ id: data.user.id, username });
+      const profile = { id: data.user.id, username, created_at: new Date().toISOString() };
+      setUser(profile);
+      setStoreUser(profile);
     }
 
     return {};
   }
 
   async function signIn(email: string, password: string): Promise<{ error?: string }> {
-    console.log('signIn called');
-    
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const supabase = getSupabase();
 
-    console.log('signIn result:', { error: error?.message, user: data?.user?.id });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      return { error: error.message };
-    }
+    if (error) return { error: error.message };
 
     if (data.user) {
-      // Load profile
       const { data: profile } = await supabase
         .from('users')
         .select('*')
         .eq('id', data.user.id)
         .single();
-      
-      console.log('profile loaded:', profile);
-      
+
       if (profile) {
         setUser(profile);
         setStoreUser(profile);
@@ -147,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut(): Promise<void> {
+    const supabase = getSupabase();
     await supabase.auth.signOut();
     setUser(null);
     setStoreUser(null);
