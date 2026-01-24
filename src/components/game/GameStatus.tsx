@@ -24,7 +24,7 @@ export function GameStatus({ game, playerRole, opponentName, currentClue, guessC
   const theirRemaining = playerRole === 'player1' ? remaining.player2 : remaining.player1;
   
   return (
-    <div className="bg-gradient-to-r from-rose-800 via-rose-700 to-rose-800 px-4 py-3 shadow-lg">
+    <div className="bg-gradient-to-r from-stone-700 via-stone-600 to-stone-700 px-4 py-3 shadow-lg">
       <div className="max-w-lg mx-auto">
         {/* Turn indicator */}
         <div className="text-center mb-3">
@@ -32,8 +32,8 @@ export function GameStatus({ game, playerRole, opponentName, currentClue, guessC
             className={cn(
               'inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold uppercase tracking-wider shadow-md',
               isMyTurn
-                ? 'bg-gradient-to-r from-green-400 to-green-500 text-white'
-                : 'bg-white/20 text-white/90'
+                ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white'
+                : 'bg-stone-500 text-stone-200'
             )}
           >
             {isMyTurn && <Zap className="w-4 h-4" />}

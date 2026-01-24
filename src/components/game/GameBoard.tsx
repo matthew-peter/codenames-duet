@@ -42,62 +42,48 @@ function WordCard({
   // Get card type from current player's key (what they see)
   const cardTypeForMe = getCardTypeForPlayer(index, game.key_card, playerRole);
   
-  // Card styling based on state
+  // Card styling based on state - matches real Codenames Duet colors
   const getCardStyles = () => {
     if (isRevealed) {
       if (revealed.type === 'agent') {
+        // Forest green - found agent
         return {
-          card: 'bg-gradient-to-br from-green-400 via-green-500 to-green-600 border-green-300',
+          card: 'bg-emerald-700 border-emerald-900',
           text: 'text-white',
-          label: 'bg-green-700 text-white',
-          icon: <User className="w-10 h-10 text-white" />,
-          iconLabel: 'AGENT',
         };
       } else if (revealed.type === 'assassin') {
+        // Black - assassin
         return {
-          card: 'bg-gradient-to-br from-stone-800 via-stone-900 to-black border-stone-600',
+          card: 'bg-stone-900 border-stone-950',
           text: 'text-white',
-          label: 'bg-black text-white',
-          icon: <Skull className="w-10 h-10 text-red-500" />,
-          iconLabel: 'ASSASSIN',
         };
       } else {
-        // Bystander
+        // Tan/beige - bystander
         return {
-          card: 'bg-gradient-to-br from-amber-200 via-amber-300 to-orange-300 border-amber-400',
+          card: 'bg-amber-100 border-amber-300',
           text: 'text-amber-900',
-          label: 'bg-amber-500 text-white',
-          icon: <Eye className="w-10 h-10 text-amber-700" />,
-          iconLabel: 'BYSTANDER',
         };
       }
     }
     
-    // Unrevealed card - show VERY clear hints for clue giver
+    // Unrevealed cards - show hints for clue giver
     if (cardTypeForMe === 'agent') {
+      // Light green tint for your agents
       return {
-        card: 'bg-gradient-to-br from-green-100 to-green-200 border-green-500 border-3',
-        text: 'text-green-800',
-        label: 'bg-green-500 text-white',
-        icon: null,
-        iconLabel: null,
+        card: 'bg-emerald-100 border-emerald-400 border-2',
+        text: 'text-emerald-900',
       };
     } else if (cardTypeForMe === 'assassin') {
+      // Dark gray for assassins
       return {
-        card: 'bg-gradient-to-br from-stone-300 to-stone-400 border-stone-800 border-3',
+        card: 'bg-stone-300 border-stone-600 border-2',
         text: 'text-stone-900',
-        label: 'bg-stone-800 text-white',
-        icon: null,
-        iconLabel: null,
       };
     } else {
-      // Bystander for me
+      // Cream/beige for bystanders
       return {
-        card: 'bg-gradient-to-br from-amber-50 to-amber-100 border-amber-300 border-2',
-        text: 'text-amber-800',
-        label: 'bg-white text-stone-700',
-        icon: null,
-        iconLabel: null,
+        card: 'bg-amber-50 border-amber-200',
+        text: 'text-stone-700',
       };
     }
   };

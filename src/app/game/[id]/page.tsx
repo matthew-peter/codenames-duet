@@ -336,7 +336,7 @@ function GamePageContent({ gameId }: { gameId: string }) {
     : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-rose-900 via-rose-800 to-stone-900 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-stone-800 via-stone-700 to-stone-900 flex flex-col">
       <Header />
       
       <GameStatus
