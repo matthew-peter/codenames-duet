@@ -1,9 +1,15 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { createBrowserClient } from '@supabase/ssr';
 import { User } from '@/lib/supabase/types';
 import { useGameStore } from '@/lib/store/gameStore';
+
+// Single supabase instance for the browser
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface AuthContextType {
   user: User | null;
@@ -20,63 +26,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const setStoreUser = useGameStore((state) => state.setUser);
 
-  useEffect(() => {
-    let isMounted = true;
-    const supabase = createClient();
+  // Load user profile from database
+  const loadProfile = useCallback(async (userId: string) => {
+    const { data: profile } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
     
-    // Check for existing session
-    const checkUser = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (!isMounted) return;
-        
-        if (sessionError || !session?.user) {
-          setLoading(false);
-          return;
-        }
-        
-        // Get user profile
-        const { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (!isMounted) return;
-        
-        if (profile) {
-          setUser(profile);
-          setStoreUser(profile);
-        }
-      } catch (error) {
-        console.error('AuthProvider checkUser error:', error);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+    if (profile) {
+      setUser(profile);
+      setStoreUser(profile);
+    }
+    return profile;
+  }, [setStoreUser]);
+
+  // Check session on mount
+  useEffect(() => {
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await loadProfile(session.user.id);
       }
+      setLoading(false);
     };
 
-    // Run the check
-    checkUser();
+    init();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!isMounted) return;
-        
         if (event === 'SIGNED_IN' && session?.user) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profile && isMounted) {
-            setUser(profile);
-            setStoreUser(profile);
-          }
+          await loadProfile(session.user.id);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
           setStoreUser(null);
@@ -84,130 +65,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, [setStoreUser]);
+    return () => subscription.unsubscribe();
+  }, [loadProfile, setStoreUser]);
 
-  const signUp = async (email: string, password: string, username: string) => {
-    const supabase = createClient();
+  const signUp = useCallback(async (email: string, password: string, username: string): Promise<{ error?: string }> => {
+    // Check if username is taken
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .single();
     
-    try {
-      // Check if username is taken
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('username', username)
-        .single();
+    if (existingUser) {
+      return { error: 'Username is already taken' };
+    }
+
+    // Sign up
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { username } },
+    });
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    if (data.user) {
+      // Wait for trigger to create profile
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      if (existingUser) {
-        return { error: 'Username is already taken' };
+      // Load profile
+      let profile = await loadProfile(data.user.id);
+      
+      // If trigger didn't create it, create manually
+      if (!profile) {
+        await supabase.from('users').insert({ id: data.user.id, username });
+        await loadProfile(data.user.id);
       }
-
-      // Sign up with Supabase Auth - include username in metadata for the trigger
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-          },
-        },
-      });
-
-      if (error) {
-        return { error: error.message };
-      }
-
-      if (data.user) {
-        // The database trigger should create the user profile automatically
-        // But we'll also try to create it manually as a fallback
-        // First check if the profile was created by the trigger
-        let { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        // If trigger didn't create it (or failed), create it manually
-        if (!profile) {
-          const { error: profileError } = await supabase
-            .from('users')
-            .insert({
-              id: data.user.id,
-              username,
-            });
-
-          if (profileError) {
-            // Check if it's a duplicate key error (trigger created it)
-            if (!profileError.message.includes('duplicate')) {
-              return { error: 'Database error saving new user: ' + profileError.message };
-            }
-          }
-
-          // Fetch the created profile
-          const { data: newProfile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
-          
-          profile = newProfile;
-        }
-
-        if (profile) {
-          setUser(profile);
-          setStoreUser(profile);
-        }
-      }
-
-      return {};
-    } catch (error) {
-      console.error('signUp error:', error);
-      return { error: 'An unexpected error occurred' };
     }
-  };
 
-  const signIn = async (email: string, password: string) => {
-    const supabase = createClient();
-    
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    return {};
+  }, [loadProfile]);
 
-      if (error) {
-        return { error: error.message };
-      }
+  const signIn = useCallback(async (email: string, password: string): Promise<{ error?: string }> => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (data.user) {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        if (profile) {
-          setUser(profile);
-          setStoreUser(profile);
-        }
-      }
-
-      return {};
-    } catch (error) {
-      console.error('signIn error:', error);
-      return { error: 'An unexpected error occurred' };
+    if (error) {
+      return { error: error.message };
     }
-  };
 
-  const signOut = async () => {
-    const supabase = createClient();
+    if (data.user) {
+      await loadProfile(data.user.id);
+    }
+
+    return {};
+  }, [loadProfile]);
+
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
     setStoreUser(null);
-  };
+  }, [setStoreUser]);
 
   return (
     <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
