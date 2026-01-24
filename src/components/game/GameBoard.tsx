@@ -7,7 +7,6 @@ import { getCardTypeForPlayer } from '@/lib/game/keyGenerator';
 import { isWordRevealed } from '@/lib/game/gameLogic';
 import { cn } from '@/lib/utils';
 import { WordDefinition } from './WordDefinition';
-import { User, Eye, Skull } from 'lucide-react';
 
 interface WordCardProps {
   word: string;
@@ -46,48 +45,65 @@ function WordCard({
   // Get card type from current player's key (what they see)
   const cardTypeForMe = getCardTypeForPlayer(index, game.key_card, playerRole);
   
-  // Card styling based on state - matches real Codenames Duet colors
+  // Dynamic font size based on word length
+  const getFontSize = () => {
+    if (word.length <= 5) return 'text-[11px]';
+    if (word.length <= 7) return 'text-[10px]';
+    if (word.length <= 9) return 'text-[9px]';
+    return 'text-[8px]';
+  };
+  
+  // Who guessed this card?
+  const guessedByMe = revealed?.guessedBy === playerRole;
+  const guessedByThem = revealed?.guessedBy && revealed?.guessedBy !== playerRole;
+  
+  // Card styling based on state
   const getCardStyles = () => {
     if (isRevealed) {
       if (revealed.type === 'agent') {
-        // Forest green - found agent
+        // Green with indicator of who guessed
         return {
-          card: 'bg-emerald-600 border-emerald-800 border-3',
-          text: 'text-white font-black',
+          card: 'bg-emerald-600 border-emerald-700',
+          text: 'text-white',
+          indicator: guessedByMe ? '✓ YOU' : '✓ THEM',
+          indicatorColor: 'bg-emerald-800 text-emerald-100',
         };
       } else if (revealed.type === 'assassin') {
-        // Black - assassin
+        // RED background with skull for assassin - make it very distinct!
         return {
-          card: 'bg-stone-800 border-stone-900 border-3',
-          text: 'text-red-400 font-black',
+          card: 'bg-red-700 border-red-900',
+          text: 'text-white',
+          indicator: '☠ DEAD',
+          indicatorColor: 'bg-red-900 text-white',
         };
       } else {
-        // Tan/beige - bystander
+        // Tan/beige for bystander
         return {
-          card: 'bg-stone-300 border-stone-400 border-3',
-          text: 'text-stone-700',
+          card: 'bg-amber-200 border-amber-400',
+          text: 'text-amber-900',
+          indicator: guessedByMe ? '○ YOU' : '○ THEM',
+          indicatorColor: 'bg-amber-300 text-amber-800',
         };
       }
     }
     
     // Unrevealed cards - show hints for clue giver
     if (cardTypeForMe === 'agent') {
-      // Light green tint for your agents
       return {
-        card: 'bg-emerald-50 border-emerald-500 border-2',
-        text: 'text-emerald-800',
+        card: 'bg-emerald-50 border-emerald-400 border-2',
+        text: 'text-emerald-900',
       };
     } else if (cardTypeForMe === 'assassin') {
-      // Dark gray for assassins
+      // Show assassins clearly to clue giver
       return {
-        card: 'bg-stone-200 border-stone-500 border-2',
-        text: 'text-stone-800',
+        card: 'bg-stone-700 border-stone-900 border-2',
+        text: 'text-stone-100',
       };
     } else {
-      // Cream/beige for bystanders
+      // Cream for bystanders
       return {
-        card: 'bg-amber-50 border-amber-200',
-        text: 'text-stone-600',
+        card: 'bg-amber-50 border-amber-200 border',
+        text: 'text-stone-700',
       };
     }
   };
@@ -155,7 +171,7 @@ function WordCard({
     <>
       <button
         className={cn(
-          'relative w-full aspect-square rounded-lg border-2 flex items-center justify-center overflow-hidden',
+          'relative w-full aspect-square rounded-lg flex flex-col items-center justify-center overflow-hidden',
           'transition-all duration-150',
           'touch-manipulation select-none',
           styles.card,
@@ -169,24 +185,26 @@ function WordCard({
         onContextMenu={handleContextMenu}
         disabled={isRevealed && !showDefinition}
       >
-        {/* Word - always visible */}
+        {/* Word - dynamic sizing */}
         <span className={cn(
-          'text-[11px] font-bold uppercase text-center leading-tight px-0.5',
+          'font-bold uppercase text-center leading-tight px-0.5',
+          getFontSize(),
           styles.text
         )}>
           {word}
         </span>
         
-        {/* Revealed indicator - small icon in corner */}
-        {isRevealed && (
-          <div className="absolute top-0.5 right-0.5">
-            {revealed.type === 'agent' && <User className="w-3 h-3 text-white" />}
-            {revealed.type === 'assassin' && <Skull className="w-3 h-3 text-red-400" />}
-            {revealed.type === 'bystander' && <Eye className="w-3 h-3 text-stone-500" />}
+        {/* Who guessed indicator for revealed cards */}
+        {isRevealed && 'indicator' in styles && (
+          <div className={cn(
+            'absolute bottom-0 left-0 right-0 text-[7px] font-bold py-0.5 text-center',
+            styles.indicatorColor
+          )}>
+            {styles.indicator}
           </div>
         )}
         
-        {/* Selection checkmark */}
+        {/* Selection checkmark for clue giving */}
         {isSelected && !isRevealed && (
           <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center">
             <span className="text-white text-[10px] font-bold">✓</span>
@@ -195,9 +213,9 @@ function WordCard({
         
         {/* Highlight for guess - tap again prompt */}
         {isHighlightedForGuess && !isRevealed && (
-          <div className="absolute inset-0 flex items-center justify-center bg-amber-500/30">
-            <span className="text-[9px] font-bold text-amber-900 bg-white/80 px-1.5 py-0.5 rounded">
-              TAP TO CONFIRM
+          <div className="absolute inset-0 flex items-center justify-center bg-amber-500/40 rounded-lg">
+            <span className="text-[8px] font-bold text-amber-900 bg-white/90 px-1 py-0.5 rounded shadow">
+              TAP AGAIN
             </span>
           </div>
         )}

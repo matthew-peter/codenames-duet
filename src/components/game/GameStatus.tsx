@@ -24,24 +24,29 @@ export function GameStatus({ game, playerRole, opponentName, currentClue, guessC
   const myRemaining = playerRole === 'player1' ? remaining.player1 : remaining.player2;
   const theirRemaining = playerRole === 'player1' ? remaining.player2 : remaining.player1;
   
-  // Determine what to show
-  const myAction = isClueGiver && isCluePhase;
-  const theirGuessing = isClueGiver && isGuessPhase;
-  const theirCluing = !isClueGiver && isCluePhase;
-  const myGuessing = !isClueGiver && isGuessPhase;
+  // Simplified status logic:
+  // - My turn to give clue: I'm clue giver (current_turn) AND phase is clue
+  // - My turn to guess: I'm NOT clue giver AND phase is guess
+  // - Waiting for them to give clue: I'm NOT clue giver AND phase is clue
+  // - Waiting for them to guess: I'm clue giver AND phase is guess
   
   let statusText = '';
   let isActive = false;
-  if (myAction) {
-    statusText = '⚡ GIVE A CLUE';
-    isActive = true;
-  } else if (myGuessing) {
-    statusText = '⚡ YOUR GUESS';
-    isActive = true;
-  } else if (theirGuessing) {
-    statusText = `${opponentName || 'Partner'} guessing...`;
-  } else if (theirCluing) {
-    statusText = `${opponentName || 'Partner'} giving clue...`;
+  
+  if (isClueGiver) {
+    if (isCluePhase) {
+      statusText = '⚡ GIVE A CLUE';
+      isActive = true;
+    } else {
+      statusText = `${opponentName || 'Partner'} guessing...`;
+    }
+  } else {
+    if (isGuessPhase) {
+      statusText = '⚡ YOUR TURN TO GUESS';
+      isActive = true;
+    } else {
+      statusText = `${opponentName || 'Partner'} giving clue...`;
+    }
   }
   
   return (

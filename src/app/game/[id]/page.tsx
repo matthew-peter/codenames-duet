@@ -369,9 +369,10 @@ function GamePageContent({ gameId }: { gameId: string }) {
 
   const isMyTurn = game.current_turn === playerRole;
   
-  // Calculate current clue from moves
-  const currentClue = moves.filter(m => m.move_type === 'clue').slice(-1)[0] || null;
-  const hasActiveClue = game.current_phase === 'guess' && currentClue !== null;
+  // Calculate current clue from moves - only show during guess phase
+  const lastClue = moves.filter(m => m.move_type === 'clue').slice(-1)[0] || null;
+  const currentClue = game.current_phase === 'guess' ? lastClue : null;
+  const hasActiveClue = game.current_phase === 'guess' && lastClue !== null;
   
   // Count guesses this turn (guesses since last clue)
   const lastClueIndex = moves.map(m => m.move_type).lastIndexOf('clue');
