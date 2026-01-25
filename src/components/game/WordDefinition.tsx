@@ -7,6 +7,7 @@ import { X } from 'lucide-react';
 interface Definition {
   word: string;
   phonetic?: string;
+  source?: string;
   meanings: {
     partOfSpeech: string;
     definitions: {
@@ -21,6 +22,80 @@ interface WordDefinitionProps {
   onClose: () => void;
 }
 
+// Try Free Dictionary API first
+async function tryFreeDictionary(word: string): Promise<Definition | null> {
+  try {
+    const response = await fetch(
+      `https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`
+    );
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    
+    if (data && data.length > 0) {
+      const allMeanings: { partOfSpeech: string; definitions: { definition: string; example?: string }[] }[] = [];
+      
+      for (const entry of data) {
+        for (const meaning of entry.meanings || []) {
+          const existing = allMeanings.find(m => m.partOfSpeech === meaning.partOfSpeech);
+          if (existing) {
+            existing.definitions.push(...meaning.definitions.slice(0, 4));
+          } else {
+            allMeanings.push({
+              partOfSpeech: meaning.partOfSpeech,
+              definitions: meaning.definitions.slice(0, 4),
+            });
+          }
+        }
+      }
+      
+      return {
+        word: data[0].word,
+        phonetic: data[0].phonetic || data.find((e: { phonetic?: string }) => e.phonetic)?.phonetic,
+        source: 'Dictionary',
+        meanings: allMeanings,
+      };
+    }
+  } catch {
+    // Fall through to next source
+  }
+  return null;
+}
+
+// Try Wikipedia API for proper nouns, places, etc.
+async function tryWikipedia(word: string): Promise<Definition | null> {
+  try {
+    const searchResponse = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(word)}`
+    );
+    
+    if (!searchResponse.ok) return null;
+    
+    const data = await searchResponse.json();
+    
+    if (data && data.extract && data.type !== 'disambiguation') {
+      // Clean up the extract - take first 2-3 sentences
+      const sentences = data.extract.split('. ').slice(0, 3).join('. ');
+      const description = data.description || 'proper noun';
+      
+      return {
+        word: data.title || word,
+        source: 'Wikipedia',
+        meanings: [{
+          partOfSpeech: description,
+          definitions: [{
+            definition: sentences + (sentences.endsWith('.') ? '' : '.'),
+          }],
+        }],
+      };
+    }
+  } catch {
+    // Fall through
+  }
+  return null;
+}
+
 export function WordDefinition({ word, onClose }: WordDefinitionProps) {
   const [definition, setDefinition] = useState<Definition | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,49 +103,20 @@ export function WordDefinition({ word, onClose }: WordDefinitionProps) {
 
   useEffect(() => {
     const fetchDefinition = async () => {
-      try {
-        const response = await fetch(
-          `https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`
-        );
-        
-        if (!response.ok) {
-          throw new Error('Word not found');
-        }
-        
-        const data = await response.json();
-        
-        if (data && data.length > 0) {
-          // Combine meanings from all entries (some words have multiple entries)
-          const allMeanings: { partOfSpeech: string; definitions: { definition: string; example?: string }[] }[] = [];
-          
-          for (const entry of data) {
-            for (const meaning of entry.meanings || []) {
-              // Check if we already have this part of speech
-              const existing = allMeanings.find(m => m.partOfSpeech === meaning.partOfSpeech);
-              if (existing) {
-                // Add definitions to existing
-                existing.definitions.push(...meaning.definitions.slice(0, 4));
-              } else {
-                // Add new part of speech
-                allMeanings.push({
-                  partOfSpeech: meaning.partOfSpeech,
-                  definitions: meaning.definitions.slice(0, 4),
-                });
-              }
-            }
-          }
-          
-          setDefinition({
-            word: data[0].word,
-            phonetic: data[0].phonetic || data.find((e: { phonetic?: string }) => e.phonetic)?.phonetic,
-            meanings: allMeanings,
-          });
-        }
-      } catch (err) {
-        setError('Definition not available');
-      } finally {
-        setLoading(false);
+      // Try sources in order
+      let result = await tryFreeDictionary(word);
+      
+      if (!result) {
+        result = await tryWikipedia(word);
       }
+      
+      if (result) {
+        setDefinition(result);
+      } else {
+        setError('Definition not available');
+      }
+      
+      setLoading(false);
     };
 
     fetchDefinition();
@@ -89,9 +135,16 @@ export function WordDefinition({ word, onClose }: WordDefinitionProps) {
         <div className="flex items-center justify-between p-4 border-b">
           <div>
             <h2 className="text-xl font-bold uppercase">{word}</h2>
-            {definition?.phonetic && (
-              <p className="text-sm text-stone-500">{definition.phonetic}</p>
-            )}
+            <div className="flex items-center gap-2">
+              {definition?.phonetic && (
+                <span className="text-sm text-stone-500">{definition.phonetic}</span>
+              )}
+              {definition?.source && (
+                <span className="text-xs text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">
+                  via {definition.source}
+                </span>
+              )}
+            </div>
           </div>
           <Button
             variant="ghost"
