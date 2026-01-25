@@ -34,7 +34,7 @@ function DashboardContent() {
   // Game creation settings
   const [timerTokens, setTimerTokens] = useState(9);
   const [clueStrictness, setClueStrictness] = useState<ClueStrictness>('strict');
-  const [firstClueGiver, setFirstClueGiver] = useState<'creator' | 'joiner'>('creator');
+  const [firstClueGiver, setFirstClueGiver] = useState<'creator' | 'joiner' | 'random'>('creator');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // Fetch active games and subscribe to changes
@@ -166,6 +166,11 @@ function DashboardContent() {
       
       // Match the actual database schema
       // current_turn represents who gives the first clue
+      // If random, pick one
+      const resolvedFirstClue = firstClueGiver === 'random' 
+        ? (Math.random() < 0.5 ? 'creator' : 'joiner')
+        : firstClueGiver;
+      
       const newGame = {
         id: crypto.randomUUID(),
         pin,
@@ -177,7 +182,7 @@ function DashboardContent() {
         board_state: { revealed: {} },
         timer_tokens: timerTokens,
         clue_strictness: clueStrictness,
-        current_turn: firstClueGiver === 'creator' ? 'player1' : 'player2',
+        current_turn: resolvedFirstClue === 'creator' ? 'player1' : 'player2',
         current_phase: 'clue',
         player1_agents_found: 0,
         player2_agents_found: 0,
@@ -425,7 +430,7 @@ function DashboardContent() {
                     <Label>Who gives the first clue?</Label>
                     <Select
                       value={firstClueGiver}
-                      onValueChange={(v) => setFirstClueGiver(v as 'creator' | 'joiner')}
+                      onValueChange={(v) => setFirstClueGiver(v as 'creator' | 'joiner' | 'random')}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -436,6 +441,9 @@ function DashboardContent() {
                         </SelectItem>
                         <SelectItem value="joiner">
                           My partner (who joins)
+                        </SelectItem>
+                        <SelectItem value="random">
+                          🎲 Random
                         </SelectItem>
                       </SelectContent>
                     </Select>
