@@ -13,7 +13,7 @@ import { InlineHistory } from '@/components/game/InlineHistory';
 import { useGameStore } from '@/lib/store/gameStore';
 import { createClient } from '@/lib/supabase/client';
 import { Game, Move, CurrentTurn } from '@/lib/supabase/types';
-import { processGuess, getNextTurn } from '@/lib/game/gameLogic';
+import { processGuess, getNextTurn, hasAgentsToClue, getRemainingAgentsPerPlayer } from '@/lib/game/gameLogic';
 import { sendTurnNotification } from '@/lib/notifications';
 import { toast } from 'sonner';
 
@@ -367,6 +367,43 @@ function GamePageContent({ gameId }: { gameId: string }) {
       toast.error('Failed to end turn');
     }
   }, [game, user, playerRole, supabase, opponent]);
+
+  // Auto-skip clue phase if current clue giver has no agents left to clue about
+  useEffect(() => {
+    if (!game || !user || !playerRole || game.status !== 'playing') return;
+    if (game.current_phase !== 'clue') return;
+    
+    // Only the current clue giver should trigger the skip
+    if (game.current_turn !== playerRole) return;
+    
+    // Check if I have any agents left on my key for partner to guess
+    const remaining = getRemainingAgentsPerPlayer(game);
+    const myRemaining = playerRole === 'player1' ? remaining.player1 : remaining.player2;
+    
+    if (myRemaining === 0) {
+      // I have no agents left - auto-pass to partner
+      const autoSkip = async () => {
+        // Create a "pass" move
+        await supabase.from('moves').insert({
+          game_id: game.id,
+          player_id: user.id,
+          move_type: 'end_turn',
+        });
+
+        // Switch turn to partner - they become the clue giver
+        const otherPlayer = playerRole === 'player1' ? 'player2' : 'player1';
+        await supabase
+          .from('games')
+          .update({
+            current_turn: otherPlayer,
+            current_phase: 'clue',
+          })
+          .eq('id', game.id);
+      };
+      
+      autoSkip();
+    }
+  }, [game, user, playerRole, supabase]);
 
   if (authLoading || loading) {
     return (

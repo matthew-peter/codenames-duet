@@ -150,6 +150,16 @@ export function getRemainingAgentsPerPlayer(game: Game): {
 }
 
 /**
+ * Checks if a player has any unrevealed agents on their key to clue about
+ * This is different from remaining - we count agents that haven't been found as agents yet
+ * (regardless of whether they've been revealed as bystanders)
+ */
+export function hasAgentsToClue(game: Game, player: CurrentTurn): boolean {
+  const remaining = getRemainingAgentsPerPlayer(game);
+  return player === 'player1' ? remaining.player1 > 0 : remaining.player2 > 0;
+}
+
+/**
  * Gets the next turn
  */
 export function getNextTurn(currentTurn: CurrentTurn): CurrentTurn {
