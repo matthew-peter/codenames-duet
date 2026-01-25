@@ -3,6 +3,7 @@
 import { Game, Move, CurrentTurn } from '@/lib/supabase/types';
 import { countAgentsFound, countTotalAgentsNeeded, getRemainingAgentsPerPlayer } from '@/lib/game/gameLogic';
 import { cn } from '@/lib/utils';
+import { TappableClueWord } from './TappableClueWord';
 
 interface GameStatusProps {
   game: Game;
@@ -87,7 +88,7 @@ export function GameStatus({ game, playerRole, opponentName, currentClue, guessC
         {currentClue ? (
           <div className="flex items-center justify-center gap-2 py-1 bg-stone-800 rounded">
             <span className="text-stone-400 text-xs">CLUE:</span>
-            <span className="text-white font-black text-lg">{currentClue.clue_word}</span>
+            <TappableClueWord word={currentClue.clue_word || ''} className="text-white font-black text-lg" />
             <span className="text-amber-400 font-bold">{currentClue.clue_number}</span>
             {guessCount > 0 && (
               <span className="text-stone-400 text-xs">• {guessCount} guessed</span>

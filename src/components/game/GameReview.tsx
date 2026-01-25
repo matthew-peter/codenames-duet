@@ -6,6 +6,7 @@ import { countAgentsFound, countTotalAgentsNeeded, checkAssassinHit } from '@/li
 import { getCardTypeForPlayer } from '@/lib/game/keyGenerator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { TappableClueWord } from './TappableClueWord';
 import Link from 'next/link';
 
 interface GameReviewProps {
@@ -177,7 +178,7 @@ export function GameReview({ game, moves, playerRole, player1Name, player2Name }
               >
                 {move.move_type === 'clue' && (
                   <span>
-                    <span className="font-bold">{move.clue_word?.toUpperCase()}</span>
+                    <TappableClueWord word={move.clue_word?.toUpperCase() || ''} className="font-bold" />
                     <span className="text-amber-400 ml-1">{move.clue_number}</span>
                   </span>
                 )}

@@ -2,6 +2,7 @@
 
 import { Move, CurrentTurn } from '@/lib/supabase/types';
 import { cn } from '@/lib/utils';
+import { TappableClueWord } from './TappableClueWord';
 
 interface InlineHistoryProps {
   moves: Move[];
@@ -97,9 +98,10 @@ export function InlineHistory({
                     )}>
                       {isYourClue ? 'You' : clueGiverName.split('_')[0]}
                     </span>
-                    <span className="font-bold text-white">
-                      {group.clue.clue_word?.toUpperCase()}
-                    </span>
+                    <TappableClueWord 
+                      word={group.clue.clue_word?.toUpperCase() || ''} 
+                      className="font-bold text-white"
+                    />
                     <span className="text-amber-400 font-bold">
                       {group.clue.clue_number}
                     </span>

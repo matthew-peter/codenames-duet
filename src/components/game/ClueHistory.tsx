@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Button } from '@/components/ui/button';
 import { History, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TappableClueWord } from './TappableClueWord';
 
 interface ClueHistoryProps {
   moves: Move[];
@@ -102,7 +103,7 @@ export function ClueHistory({ moves, playerRole, player1Name, player2Name, playe
                     
                     {/* Clue word */}
                     <div className="font-bold text-lg text-stone-800">
-                      {group.clue.clue_word?.toUpperCase()}: {group.clue.clue_number}
+                      <TappableClueWord word={group.clue.clue_word?.toUpperCase() || ''} />: {group.clue.clue_number}
                     </div>
                     
                     {/* Intended words - only show for your clues */}
