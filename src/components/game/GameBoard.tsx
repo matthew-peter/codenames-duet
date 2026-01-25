@@ -63,6 +63,10 @@ function WordCard({
   // but could still be an agent on MY key that my partner needs to find
   const isStillMyAgent = isRevealed && revealed.type !== 'agent' && cardTypeForMe === 'agent';
   
+  // For guessing: if partner revealed it as bystander but it's an agent on THEIR key (which I'm guessing for)
+  // Then I should be able to guess it to "find" it
+  const isStillTheirAgentToGuess = isRevealed && revealed.type !== 'agent' && cardTypeForThem === 'agent';
+  
   // Card styling based on state
   const getCardStyles = () => {
     if (isRevealed) {
@@ -145,13 +149,15 @@ function WordCard({
       clearTimeout(longPressTimer.current);
     }
     
-    // Allow interaction if: not revealed, OR revealed but still my agent to clue
-    const canInteract = !isRevealed || (isStillMyAgent && isGivingClue);
+    // Allow clue selection if: not revealed, OR revealed but still my agent to clue
+    // Allow guessing if: not revealed, OR revealed bystander that's still an agent on partner's key
+    const canClue = !isRevealed || isStillMyAgent;
+    const canGuess = !isRevealed || isStillTheirAgentToGuess;
     
-    if (!isLongPress.current && canInteract) {
-      if (isGivingClue) {
+    if (!isLongPress.current) {
+      if (isGivingClue && canClue) {
         onToggleSelect(word);
-      } else if (isGuessing && !isRevealed) {
+      } else if (isGuessing && canGuess) {
         if (isHighlightedForGuess) {
           onConfirmGuess(index);
         } else {
@@ -159,24 +165,24 @@ function WordCard({
         }
       }
     }
-  }, [isGivingClue, isGuessing, isRevealed, isStillMyAgent, isHighlightedForGuess, word, index, onToggleSelect, onHighlightForGuess, onConfirmGuess]);
+  }, [isGivingClue, isGuessing, isRevealed, isStillMyAgent, isStillTheirAgentToGuess, isHighlightedForGuess, word, index, onToggleSelect, onHighlightForGuess, onConfirmGuess]);
   
   const handleClick = useCallback(() => {
-    // Allow interaction if: not revealed, OR revealed but still my agent to clue
-    const canInteract = !isRevealed || (isStillMyAgent && isGivingClue);
+    // Allow clue selection if: not revealed, OR revealed but still my agent to clue
+    // Allow guessing if: not revealed, OR revealed bystander that's still an agent on partner's key
+    const canClue = !isRevealed || isStillMyAgent;
+    const canGuess = !isRevealed || isStillTheirAgentToGuess;
     
-    if (canInteract) {
-      if (isGivingClue) {
-        onToggleSelect(word);
-      } else if (isGuessing && !isRevealed) {
-        if (isHighlightedForGuess) {
-          onConfirmGuess(index);
-        } else {
-          onHighlightForGuess(index);
-        }
+    if (isGivingClue && canClue) {
+      onToggleSelect(word);
+    } else if (isGuessing && canGuess) {
+      if (isHighlightedForGuess) {
+        onConfirmGuess(index);
+      } else {
+        onHighlightForGuess(index);
       }
     }
-  }, [isGivingClue, isGuessing, isRevealed, isStillMyAgent, isHighlightedForGuess, word, index, onToggleSelect, onHighlightForGuess, onConfirmGuess]);
+  }, [isGivingClue, isGuessing, isRevealed, isStillMyAgent, isStillTheirAgentToGuess, isHighlightedForGuess, word, index, onToggleSelect, onHighlightForGuess, onConfirmGuess]);
   
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
