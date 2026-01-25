@@ -276,7 +276,6 @@ function GamePageContent({ gameId }: { gameId: string }) {
     }
 
     clearSelectedWords();
-    toast.success(`Clue given: ${clue} (${clueNumber})`);
   }, [game, user, playerRole, supabase, clearSelectedWords, opponent]);
 
   // Handle guessing a word
@@ -284,12 +283,6 @@ function GamePageContent({ gameId }: { gameId: string }) {
     if (!game || !user || !playerRole) return;
 
     const word = game.words[wordIndex];
-    
-    // Check if already revealed
-    if (game.board_state.revealed[word]) {
-      toast.error('This word has already been guessed');
-      return;
-    }
 
     // Process the guess
     const result = processGuess(game, wordIndex, playerRole);
@@ -320,13 +313,10 @@ function GamePageContent({ gameId }: { gameId: string }) {
       
       if (result.won) {
         updates.result = 'win';
-        toast.success('🎉 You found all the agents!');
       } else if (result.cardType === 'assassin') {
         updates.result = 'loss';
-        toast.error('💀 Assassin revealed! Game over.');
       } else {
         updates.result = 'loss';
-        toast.error('Time ran out!');
       }
     } else if (result.turnEnds) {
       // Bystander hit, guessing ends, guesser now becomes the clue giver
@@ -334,11 +324,9 @@ function GamePageContent({ gameId }: { gameId: string }) {
       updates.current_turn = playerRole; // I was guessing, now I give clue
       updates.current_phase = 'clue';
       
-      // No notification needed - it's MY turn now to give a clue
-      toast.info('Bystander! Your turn to give a clue.');
+      // Bystander hit - turn ends, now I give clue
     } else {
-      // Correct guess
-      toast.success(`✓ ${word} is an agent!`);
+      // Correct guess - keep guessing
     }
 
     // Update game
@@ -377,9 +365,6 @@ function GamePageContent({ gameId }: { gameId: string }) {
 
     if (error) {
       toast.error('Failed to end turn');
-    } else {
-      // No notification - it's MY turn now to give a clue
-      toast.info('Your turn to give a clue!');
     }
   }, [game, user, playerRole, supabase, opponent]);
 
