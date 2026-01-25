@@ -146,15 +146,23 @@ export async function POST(
       }
 
       const guessedWord = game.words[guessIndex];
+      const existingReveal = game.board_state.revealed[guessedWord];
       
-      if (isWordRevealed(guessedWord, game.board_state)) {
-        return NextResponse.json({ error: 'Card already revealed' }, { status: 400 });
-      }
-
       // Determine card type for the clue giver (current turn player)
       const cardType = getCardTypeForPlayer(guessIndex, game.key_card, currentTurn);
       
-      // Update board state
+      // Check if card can be guessed:
+      // - Not revealed at all, OR
+      // - Revealed as bystander but still an agent on the clue giver's key
+      if (existingReveal) {
+        const isStillAgentToFind = existingReveal.type !== 'agent' && cardType === 'agent';
+        if (!isStillAgentToFind) {
+          return NextResponse.json({ error: 'Card already revealed' }, { status: 400 });
+        }
+      }
+      
+      // Update board state - if it was already revealed as bystander but is now found as agent,
+      // update the reveal to show it as agent
       const newRevealed: Record<string, RevealedCard> = {
         ...game.board_state.revealed,
         [guessedWord]: {
