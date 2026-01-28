@@ -49,6 +49,17 @@ function WordCard({
   const otherPlayer = playerRole === 'player1' ? 'player2' : 'player1';
   const cardTypeForThem = getCardTypeForPlayer(index, game.key_card, otherPlayer);
   
+  // Has this card already been found as an agent?
+  const alreadyFoundAsAgent = isRevealed && revealed.type === 'agent';
+  
+  // You can guess any card that hasn't been found as an agent yet
+  const canStillBeGuessed = !alreadyFoundAsAgent;
+  
+  // Is this card still an agent on MY key that my partner needs to find?
+  const isStillMyAgent = !alreadyFoundAsAgent && cardTypeForMe === 'agent';
+  
+  // Dynamic font size based on word length
+  
   // Dynamic font size based on word length
   const getFontSize = () => {
     if (word.length <= 5) return 'text-[11px]';
@@ -60,14 +71,6 @@ function WordCard({
   // Who guessed this card?
   const guessedByMe = revealed?.guessedBy === playerRole;
   const guessedByThem = revealed?.guessedBy && revealed?.guessedBy !== playerRole;
-  
-  // Key insight: A revealed card might be a bystander for whoever guessed it,
-  // but could still be an agent on MY key that my partner needs to find
-  const isStillMyAgent = isRevealed && revealed.type !== 'agent' && cardTypeForMe === 'agent';
-  
-  // For guessing: if partner revealed it as bystander but it's an agent on THEIR key (which I'm guessing for)
-  // Then I should be able to guess it to "find" it
-  const isStillTheirAgentToGuess = isRevealed && revealed.type !== 'agent' && cardTypeForThem === 'agent';
   
   // Card styling based on state
   const getCardStyles = () => {
@@ -91,23 +94,17 @@ function WordCard({
       } else {
         // Bystander - show who guessed it
         // Green border if it's still MY agent (partner needs to find it)
-        // Blue border if it's still THEIR agent (I need to guess it)
         const showGreenBorder = isStillMyAgent;
-        const showBlueBorder = isStillTheirAgentToGuess && !isStillMyAgent;
         
         return {
           card: showGreenBorder 
             ? 'bg-amber-200 border-emerald-500 border-2' // amber bg + green border = bystander that's still your agent
-            : showBlueBorder
-              ? 'bg-amber-200 border-blue-500 border-2' // amber bg + blue border = bystander you can still guess
-              : 'bg-amber-200 border-amber-400',
+            : 'bg-amber-200 border-amber-400',
           text: 'text-amber-900',
           indicator: guessedByMe ? '○ YOU' : '○ THEM',
           indicatorColor: showGreenBorder 
             ? 'bg-emerald-600 text-white' // green indicator to emphasize it's still an agent
-            : showBlueBorder
-              ? 'bg-blue-600 text-white' // blue indicator for cards you can guess
-              : 'bg-amber-300 text-amber-800',
+            : 'bg-amber-300 text-amber-800',
         };
       }
     }
@@ -140,8 +137,8 @@ function WordCard({
     ? 'ring-4 ring-blue-500 ring-offset-2 scale-105' 
     : '';
   
-  // Highlight state for guessing (first tap) - also for bystanders that are still agents to guess
-  const canBeGuessed = !isRevealed || isStillTheirAgentToGuess;
+  // Highlight state for guessing (first tap)
+  const canBeGuessed = canStillBeGuessed;
   const highlightStyles = isHighlightedForGuess && canBeGuessed
     ? 'ring-4 ring-amber-400 ring-offset-2 scale-105'
     : '';
@@ -199,21 +196,18 @@ function WordCard({
       document.activeElement.blur();
     }
     
-    // Allow clue selection if: not revealed, OR revealed but still my agent to clue
-    // Allow guessing if: not revealed, OR revealed bystander that's still an agent on partner's key
     const canClue = !isRevealed || isStillMyAgent;
-    const canGuess = !isRevealed || isStillTheirAgentToGuess;
     
     if (isGivingClue && canClue) {
       onToggleSelect(word);
-    } else if (isGuessing && canGuess) {
+    } else if (isGuessing && canStillBeGuessed) {
       if (isHighlightedForGuess) {
         onConfirmGuess(index);
       } else {
         onHighlightForGuess(index);
       }
     }
-  }, [isGivingClue, isGuessing, isRevealed, isStillMyAgent, isStillTheirAgentToGuess, isHighlightedForGuess, word, index, onToggleSelect, onHighlightForGuess, onConfirmGuess]);
+  }, [isGivingClue, isGuessing, isRevealed, isStillMyAgent, canStillBeGuessed, isHighlightedForGuess, word, index, onToggleSelect, onHighlightForGuess, onConfirmGuess]);
   
   const handleClick = useCallback(() => {
     // If touch already handled this, skip
@@ -227,21 +221,18 @@ function WordCard({
       document.activeElement.blur();
     }
     
-    // Allow clue selection if: not revealed, OR revealed but still my agent to clue
-    // Allow guessing if: not revealed, OR revealed bystander that's still an agent on partner's key
     const canClue = !isRevealed || isStillMyAgent;
-    const canGuess = !isRevealed || isStillTheirAgentToGuess;
     
     if (isGivingClue && canClue) {
       onToggleSelect(word);
-    } else if (isGuessing && canGuess) {
+    } else if (isGuessing && canStillBeGuessed) {
       if (isHighlightedForGuess) {
         onConfirmGuess(index);
       } else {
         onHighlightForGuess(index);
       }
     }
-  }, [isGivingClue, isGuessing, isRevealed, isStillMyAgent, isStillTheirAgentToGuess, isHighlightedForGuess, word, index, onToggleSelect, onHighlightForGuess, onConfirmGuess]);
+  }, [isGivingClue, isGuessing, isRevealed, isStillMyAgent, canStillBeGuessed, isHighlightedForGuess, word, index, onToggleSelect, onHighlightForGuess, onConfirmGuess]);
   
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -265,7 +256,7 @@ function WordCard({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onContextMenu={handleContextMenu}
-        disabled={isRevealed && !isStillTheirAgentToGuess && !isStillMyAgent && !showDefinition}
+        disabled={!canStillBeGuessed && !isStillMyAgent && !showDefinition}
       >
         {/* Word - dynamic sizing */}
         <span className={cn(
