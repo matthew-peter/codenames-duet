@@ -318,9 +318,11 @@ function DashboardContent() {
               ) : (
                 <div className="space-y-2">
                   {activeGames.map((game) => {
-                    const isYourTurn = (game.current_turn === 'player1' && game.player1_id === user.id) ||
-                                       (game.current_turn === 'player2' && game.player2_id === user.id);
+                    const amIClueGiver = (game.current_turn === 'player1' && game.player1_id === user.id) ||
+                                         (game.current_turn === 'player2' && game.player2_id === user.id);
                     const isCluePhase = game.current_phase === 'clue';
+                    // My turn = I'm clue giver and it's clue phase, OR I'm guesser and it's guess phase
+                    const isYourTurn = (amIClueGiver && isCluePhase) || (!amIClueGiver && !isCluePhase);
                     const isWaiting = game.status === 'waiting';
                     const yourAgents = game.player1_id === user.id ? game.player1_agents_found : game.player2_agents_found;
                     const theirAgents = game.player1_id === user.id ? game.player2_agents_found : game.player1_agents_found;

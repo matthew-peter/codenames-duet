@@ -83,7 +83,7 @@ export function GameReview({ game, moves, playerRole, player1Name, player2Name }
               ? 'bg-emerald-500 hover:bg-emerald-400 text-emerald-950' 
               : 'bg-white hover:bg-stone-100 text-stone-900'
           )}>
-            Play Again
+            Back to Dashboard
           </Button>
         </Link>
         
