@@ -1,5 +1,47 @@
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import webpush from 'web-push';
+
+// Configure web-push with VAPID keys
+if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:codenames@example.com',
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
+
+async function notifyPlayer(userId: string, gameId: string, message: string) {
+  try {
+    const supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { data: subData } = await supabase
+      .from('push_subscriptions')
+      .select('subscription')
+      .eq('user_id', userId)
+      .single();
+
+    if (!subData) return;
+
+    const subscription = JSON.parse(subData.subscription);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    const payload = JSON.stringify({
+      title: 'Player Joined!',
+      body: message,
+      url: `${appUrl}/game/${gameId}`,
+      gameId: gameId
+    });
+
+    await webpush.sendNotification(subscription, payload);
+  } catch (error) {
+    console.error('Failed to notify player:', error);
+  }
+}
 
 export async function POST(
   request: Request,
@@ -55,6 +97,14 @@ export async function POST(
       console.error('Error joining game:', updateError);
       return NextResponse.json({ error: 'Failed to join game' }, { status: 500 });
     }
+
+    // Notify player1 that someone joined
+    const joinerName = user.user_metadata?.username || 'A player';
+    await notifyPlayer(
+      game.player1_id,
+      game.id,
+      `${joinerName} joined your game! Let's play!`
+    );
 
     return NextResponse.json({ game: updatedGame });
   } catch (error) {

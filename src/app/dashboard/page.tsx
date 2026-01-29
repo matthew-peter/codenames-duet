@@ -33,8 +33,8 @@ function DashboardContent() {
   
   // Game creation settings
   const [timerTokens, setTimerTokens] = useState(9);
-  const [clueStrictness, setClueStrictness] = useState<ClueStrictness>('strict');
-  const [firstClueGiver, setFirstClueGiver] = useState<'creator' | 'joiner' | 'random'>('creator');
+  const [clueStrictness, setClueStrictness] = useState<ClueStrictness>('basic');
+  const [firstClueGiver, setFirstClueGiver] = useState<'creator' | 'joiner' | 'random'>('random');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // Fetch active games and subscribe to changes

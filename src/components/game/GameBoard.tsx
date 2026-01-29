@@ -158,11 +158,11 @@ function WordCard({
   }, []);
   
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    // If finger moves more than 10px, cancel the long press and selection
+    // If finger moves more than 15px, cancel the long press and selection
     if (touchStartPos.current) {
       const dx = Math.abs(e.touches[0].clientX - touchStartPos.current.x);
       const dy = Math.abs(e.touches[0].clientY - touchStartPos.current.y);
-      if (dx > 10 || dy > 10) {
+      if (dx > 15 || dy > 15) {
         if (longPressTimer.current) {
           clearTimeout(longPressTimer.current);
           longPressTimer.current = null;

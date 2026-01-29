@@ -177,10 +177,17 @@ export function GameReview({ game, moves, playerRole, player1Name, player2Name }
                 )}
               >
                 {move.move_type === 'clue' && (
-                  <span>
-                    <TappableClueWord word={move.clue_word?.toUpperCase() || ''} className="font-bold" />
-                    <span className="text-amber-400 ml-1">{move.clue_number}</span>
-                  </span>
+                  <div>
+                    <div>
+                      <TappableClueWord word={move.clue_word?.toUpperCase() || ''} className="font-bold" />
+                      <span className="text-amber-400 ml-1">{move.clue_number}</span>
+                    </div>
+                    {move.intended_words && move.intended_words.length > 0 && (
+                      <div className="text-xs text-white/50 mt-0.5">
+                        → {move.intended_words.map(idx => words[idx]).join(', ')}
+                      </div>
+                    )}
+                  </div>
                 )}
                 {move.move_type === 'guess' && (
                   <span className="flex items-center gap-2">
