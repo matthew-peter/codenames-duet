@@ -88,7 +88,7 @@ function JoinGameContent({ pin }: { pin: string }) {
 
       // Notify player1 that someone joined
       try {
-        await fetch('/api/notify', {
+        const notifyRes = await fetch('/api/notify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -98,6 +98,8 @@ function JoinGameContent({ pin }: { pin: string }) {
             title: 'Player Joined!'
           }),
         });
+        const notifyData = await notifyRes.json();
+        console.log('Join notification result:', notifyData);
       } catch (e) {
         console.error('Failed to send join notification:', e);
       }
