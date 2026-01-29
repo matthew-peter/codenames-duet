@@ -3,46 +3,6 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import webpush from 'web-push';
 
-// Configure web-push with VAPID keys
-if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    'mailto:codenames@example.com',
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
-}
-
-async function notifyPlayer(userId: string, gameId: string, message: string) {
-  try {
-    const supabase = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
-    const { data: subData } = await supabase
-      .from('push_subscriptions')
-      .select('subscription')
-      .eq('user_id', userId)
-      .single();
-
-    if (!subData) return;
-
-    const subscription = JSON.parse(subData.subscription);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-
-    const payload = JSON.stringify({
-      title: 'Player Joined!',
-      body: message,
-      url: `${appUrl}/game/${gameId}`,
-      gameId: gameId
-    });
-
-    await webpush.sendNotification(subscription, payload);
-  } catch (error) {
-    console.error('Failed to notify player:', error);
-  }
-}
-
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -99,12 +59,46 @@ export async function POST(
     }
 
     // Notify player1 that someone joined
-    const joinerName = user.user_metadata?.username || 'A player';
-    await notifyPlayer(
-      game.player1_id,
-      game.id,
-      `${joinerName} joined your game! Let's play!`
-    );
+    try {
+      // Configure web-push
+      if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+        webpush.setVapidDetails(
+          'mailto:codenames@example.com',
+          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+          process.env.VAPID_PRIVATE_KEY
+        );
+
+        // Use service role key to bypass RLS and read player1's subscription
+        const adminSupabase = createSupabaseClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+
+        const { data: subData } = await adminSupabase
+          .from('push_subscriptions')
+          .select('subscription')
+          .eq('user_id', game.player1_id)
+          .single();
+
+        if (subData) {
+          const subscription = JSON.parse(subData.subscription);
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+          const joinerName = user.user_metadata?.username || 'A player';
+
+          const payload = JSON.stringify({
+            title: 'Player Joined!',
+            body: joinerName + ' joined your game! Lets play!',
+            url: appUrl + '/game/' + id,
+            gameId: id
+          });
+
+          await webpush.sendNotification(subscription, payload);
+        }
+      }
+    } catch (notifyError) {
+      // Don't fail the join if notification fails
+      console.error('Failed to notify player1:', notifyError);
+    }
 
     return NextResponse.json({ game: updatedGame });
   } catch (error) {
