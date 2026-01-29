@@ -80,6 +80,14 @@ function DashboardContent() {
 
     fetchActiveGames();
 
+    // Refetch when page becomes visible (coming back from a game)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchActiveGames();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     // Subscribe to game deletions and updates
     const channel = supabase
       .channel('dashboard-games')
@@ -99,6 +107,13 @@ function DashboardContent() {
           // If game is now completed or abandoned, remove from active games
           if (updatedGame.status === 'completed' || updatedGame.status === 'abandoned') {
             setActiveGames(prev => prev.filter(g => g.id !== updatedGame.id));
+          } else {
+            // Update the game in state to reflect turn changes
+            setActiveGames(prev => prev.map(g => 
+              g.id === updatedGame.id 
+                ? { ...g, ...updatedGame }
+                : g
+            ));
           }
         }
       )
@@ -106,6 +121,7 @@ function DashboardContent() {
 
     return () => {
       supabase.removeChannel(channel);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user, supabase]);
 

@@ -4,25 +4,38 @@ self.addEventListener('push', function(event) {
   if (!event.data) return;
 
   const data = event.data.json();
+  const gameId = data.gameId;
   
-  const options = {
-    body: data.body || "It's your turn!",
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    vibrate: [100, 50, 100],
-    data: {
-      url: data.url || '/',
-      gameId: data.gameId
-    },
-    actions: [
-      { action: 'open', title: 'Open Game' }
-    ],
-    tag: data.gameId || 'codenames-turn', // Prevents duplicate notifications
-    renotify: true
-  };
-
+  // Check if user is currently viewing this game
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Codenames Duet', options)
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+      // Check if any client is currently viewing this specific game
+      for (const client of clientList) {
+        if (client.url.includes('/game/' + gameId) && client.visibilityState === 'visible') {
+          // User is already viewing this game, don't show notification
+          return;
+        }
+      }
+      
+      // User is not viewing this game, show notification
+      const options = {
+        body: data.body || "It's your turn!",
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        vibrate: [100, 50, 100],
+        data: {
+          url: data.url || '/',
+          gameId: gameId
+        },
+        actions: [
+          { action: 'open', title: 'Open Game' }
+        ],
+        tag: gameId || 'codenames-turn',
+        renotify: true
+      };
+
+      return self.registration.showNotification(data.title || 'Codenames Duet', options);
+    })
   );
 });
 
