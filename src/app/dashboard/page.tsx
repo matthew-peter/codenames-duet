@@ -494,29 +494,31 @@ function DashboardContent() {
         {/* Join Game */}
         <Card className="mb-3">
           <CardContent className="p-3">
-            <form onSubmit={handleJoinGame} className="flex items-center gap-2">
+            <form onSubmit={handleJoinGame} className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-blue-600" />
                 <span className="font-medium">Join Game</span>
               </div>
-              <Input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={6}
-                placeholder="PIN"
-                value={joinPin}
-                onChange={(e) => setJoinPin(e.target.value.replace(/\D/g, ''))}
-                className="w-24 text-center tracking-widest font-mono"
-              />
-              <Button
-                type="submit"
-                size="sm"
-                disabled={joinPin.length !== 6 || joiningGame}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {joiningGame ? '...' : 'Join'}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  placeholder="Enter PIN"
+                  value={joinPin}
+                  onChange={(e) => setJoinPin(e.target.value.replace(/\D/g, ''))}
+                  className="w-32 text-center tracking-widest font-mono"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={joinPin.length !== 6 || joiningGame}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {joiningGame ? '...' : 'Join'}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
